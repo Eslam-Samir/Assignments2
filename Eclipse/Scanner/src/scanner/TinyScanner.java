@@ -13,131 +13,129 @@ public class TinyScanner {
 		);
 	
 	private static State CurrentState;
-	private static State NextState;
+	private static State NextState = State.START;
 	private static ArrayList<String> Tokens = new ArrayList<>();
 
 	public void Scan(String line)
 	{
-		String token;
+		String token = "";
 		char CurrentChar;
-		for(int i = 0; i < line.length();)
-		{
-			token = "";
-			NextState = State.START;
-			while(NextState != State.DONE && i < line.length())
-			{	
-				CurrentChar = line.charAt(i);
-				CurrentState = NextState;
-				if(CurrentState != State.DONE)
-				{
-					i++;
-				}
-				switch(CurrentState)
-				{
-				case START:
-					if(CurrentChar == ' ')
-					{
-						NextState = State.START;
-					}
-					else if(CurrentChar == '{')
-					{
-						NextState = State.IN_COMMENT;
-					}
-					else if(CurrentChar == ':')
-					{
-						token += CurrentChar;
-						NextState = State.IN_ASSIGN;
-					}
-					else if(Character.isLetter(CurrentChar))
-					{
-						token += CurrentChar;
-						NextState = State.IN_IDENTIFIER;
-					}
-					else if(Character.isDigit(CurrentChar))
-					{
-						token += CurrentChar;
-						NextState = State.IN_NUMBER;
-					}
-					else if(CurrentChar == '+' || CurrentChar == '-' || CurrentChar == '*' ||
-							CurrentChar == '/' || CurrentChar == '(' || CurrentChar == ')' ||
-							CurrentChar == '<' || CurrentChar == '>' || CurrentChar == ';' || 
-							CurrentChar == '=')
-					{
-						token += CurrentChar;
-						NextState = State.DONE;
-					}
-					else
-					{
-						NextState = State.DONE;
-					}
-					break;
-					
-				case IN_COMMENT:
-					if(CurrentChar == '}')
-					{
-						NextState = State.START;
-					}
-					else
-					{
-						NextState = State.IN_COMMENT;
-					}
-					break;
-					
-				case IN_NUMBER:
-					if(Character.isDigit(CurrentChar))
-					{
-						token += CurrentChar;
-						NextState = State.IN_NUMBER;
-					}
-					else if(CurrentChar == ')') // handle right bracket after number
-					{
-						i--;
-						NextState = State.DONE;
-					}
-					else
-					{
-						NextState = State.DONE;
-					}
-					break;
-					
-				case IN_IDENTIFIER:
-					if(Character.isLetter(CurrentChar))
-					{
-						token += CurrentChar;
-						NextState = State.IN_IDENTIFIER;
-					}
-					else if(CurrentChar == '(' || CurrentChar == ')') // handle brackets after letters
-					{
-						i--;
-						NextState = State.DONE;
-					}
-					else
-					{
-						NextState = State.DONE;
-					}
-					break;
-				
-				case IN_ASSIGN:
-					if(CurrentChar == '=')
-					{
-						token += CurrentChar;
-						NextState = State.DONE;
-					}
-					else
-					{
-						NextState = State.DONE;
-					}
-					break;
-					
-				case DONE:
-					break;
-				}
-			}
-			if(!token.isEmpty())
+		int i = 0;
+		while(i < line.length())
+		{	
+			CurrentChar = line.charAt(i);
+			CurrentState = NextState;
+			switch(CurrentState)
 			{
-				Tokens.add(token);
+			case START:
+				if(CurrentChar == ' ')
+				{
+					NextState = State.START;
+				}
+				else if(CurrentChar == '{')
+				{
+					NextState = State.IN_COMMENT;
+				}
+				else if(CurrentChar == ':')
+				{
+					token += CurrentChar;
+					NextState = State.IN_ASSIGN;
+				}
+				else if(Character.isLetter(CurrentChar))
+				{
+					token += CurrentChar;
+					NextState = State.IN_IDENTIFIER;
+				}
+				else if(Character.isDigit(CurrentChar))
+				{
+					token += CurrentChar;
+					NextState = State.IN_NUMBER;
+				}
+				else if(CurrentChar == '+' || CurrentChar == '-' || CurrentChar == '*' ||
+						CurrentChar == '/' || CurrentChar == '(' || CurrentChar == ')' ||
+						CurrentChar == '<' || CurrentChar == '>' || CurrentChar == ';' || 
+						CurrentChar == '=')
+				{
+					token += CurrentChar;
+					NextState = State.DONE;
+				}
+				else
+				{
+					NextState = State.DONE;
+				}
+				break;
+				
+			case IN_COMMENT:
+				if(CurrentChar == '}')
+				{
+					NextState = State.START;
+				}
+				else
+				{
+					NextState = State.IN_COMMENT;
+				}
+				break;
+				
+			case IN_NUMBER:
+				if(Character.isDigit(CurrentChar))
+				{
+					token += CurrentChar;
+					NextState = State.IN_NUMBER;
+				}
+				else if(CurrentChar == ')') // handle right bracket after number
+				{
+					i--;
+					NextState = State.DONE;
+				}
+				else
+				{
+					NextState = State.DONE;
+				}
+				break;
+				
+			case IN_IDENTIFIER:
+				if(Character.isLetter(CurrentChar))
+				{
+					token += CurrentChar;
+					NextState = State.IN_IDENTIFIER;
+				}
+				else if(CurrentChar == '(' || CurrentChar == ')') // handle brackets after letters
+				{
+					i--;
+					NextState = State.DONE;
+				}
+				else
+				{
+					NextState = State.DONE;
+				}
+				break;
+			
+			case IN_ASSIGN:
+				if(CurrentChar == '=')
+				{
+					token += CurrentChar;
+					NextState = State.DONE;
+				}
+				else
+				{
+					NextState = State.DONE;
+				}
+				break;
+				
+			case DONE:
+				NextState = State.START;
+				if(!token.isEmpty())
+				{
+					Tokens.add(token);
+					token = "";
+				}
+				break;
 			}
-		}
+			if(NextState != State.DONE)
+			{
+				i++;
+			}
+		}		
 	}
 	
 	public void PrintTokens()
@@ -190,13 +188,13 @@ public class TinyScanner {
         result.put(";", "SEMI");
         result.put("+", "PLUS");
         result.put("-", "MINUS");
-        result.put("/", "DIVIDE");
-        result.put("<", "SMALLER THAN");
-        result.put(">", "LARGER THAN");
-        result.put("*", "MULTI");
+        result.put("/", "DIV");
+        result.put("<", "LT");
+        result.put(">", "GT");
+        result.put("*", "MUL");
         result.put("(", "LEFT BRACKET");
         result.put(")", "RIGHT BRACKET");
-        result.put("=", "EQUAL");
+        result.put("=", "EQ");
         return result;
     }
 }

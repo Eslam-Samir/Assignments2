@@ -1,0 +1,1 @@
+read := x[index]+b[y]-c(u);   {input an integer }
