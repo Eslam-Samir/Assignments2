@@ -1,1 +1,7 @@
+{my name is eslam}
+index := 24;
+if index = 12
+	y := 1;
+	u := 2;
+end
 read := x[index]+b[y]-c(u);   {input an integer }

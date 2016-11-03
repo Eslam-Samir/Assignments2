@@ -14,12 +14,12 @@ public class Main
 			try {
 				file = new BufferedReader(new FileReader("input.txt"));
 				String line = "";
+				TinyScanner scanner = new TinyScanner();
 				while((line = file.readLine()) != null)
 				{
-					TinyScanner scanner = new TinyScanner();
 					scanner.Scan(line);
-					scanner.PrintTokens("output.txt");
 				}	
+				scanner.PrintTokens("output.txt");
 				file.close();
 			} catch (FileNotFoundException e) {
 				e.printStackTrace();

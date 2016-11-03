@@ -22,11 +22,14 @@ public class TinyScanner {
 	public void Scan(String line)
 	{
 		String token = "";
-		char CurrentChar;
+		char CurrentChar = 0;
 		int i = 0;
-		while(i < line.length())
+		while(i < line.length() || NextState == State.DONE)
 		{	
-			CurrentChar = line.charAt(i);
+			if(NextState != State.DONE)
+			{
+				CurrentChar = line.charAt(i);
+			}
 			CurrentState = NextState;
 			switch(CurrentState)
 			{
@@ -66,6 +69,7 @@ public class TinyScanner {
 				{
 					NextState = State.DONE;
 				}
+				i++;
 				break;
 				
 			case IN_COMMENT:
@@ -77,18 +81,18 @@ public class TinyScanner {
 				{
 					NextState = State.IN_COMMENT;
 				}
+				i++;
 				break;
 				
 			case IN_NUMBER:
 				if(Character.isDigit(CurrentChar))
 				{
 					token += CurrentChar;
-					NextState = State.IN_NUMBER;
-				}
-				else if(CurrentChar == ')') // handle right bracket after number
-				{
-					i--;
-					NextState = State.DONE;
+					i++;	
+					if(i == line.length())
+						NextState = State.DONE;
+					else
+						NextState = State.IN_NUMBER;
 				}
 				else
 				{
@@ -101,11 +105,11 @@ public class TinyScanner {
 				{
 					token += CurrentChar;
 					NextState = State.IN_IDENTIFIER;
-				}
-				else if(CurrentChar == '(' || CurrentChar == ')') // handle brackets after letters
-				{
-					i--;
-					NextState = State.DONE;
+					i++;
+					if(i == line.length())
+						NextState = State.DONE;
+					else
+						NextState = State.IN_IDENTIFIER;
 				}
 				else
 				{
@@ -117,12 +121,9 @@ public class TinyScanner {
 				if(CurrentChar == '=')
 				{
 					token += CurrentChar;
-					NextState = State.DONE;
+					i++;
 				}
-				else
-				{
-					NextState = State.DONE;
-				}
+				NextState = State.DONE;
 				break;
 				
 			case DONE:
@@ -133,10 +134,6 @@ public class TinyScanner {
 					token = "";
 				}
 				break;
-			}
-			if(NextState != State.DONE)
-			{
-				i++;
 			}
 		}		
 	}

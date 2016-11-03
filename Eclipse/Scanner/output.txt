@@ -1,5 +1,22 @@
 Token Value                     Token Type                    
 
+index                           IDENTIFIER                    
+:=                              ASSIGN                        
+24                              NUMBER                        
+;                               SEMI                          
+if                              RESERVED                      
+index                           IDENTIFIER                    
+=                               EQ                            
+12                              NUMBER                        
+y                               IDENTIFIER                    
+:=                              ASSIGN                        
+1                               NUMBER                        
+;                               SEMI                          
+u                               IDENTIFIER                    
+:=                              ASSIGN                        
+2                               NUMBER                        
+;                               SEMI                          
+end                             RESERVED                      
 read                            RESERVED                      
 :=                              ASSIGN                        
 x                               IDENTIFIER                    
