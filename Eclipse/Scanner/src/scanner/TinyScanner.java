@@ -1,5 +1,8 @@
 package scanner;
 
+import java.io.BufferedWriter;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -138,21 +141,22 @@ public class TinyScanner {
 		}		
 	}
 	
-	public void PrintTokens()
+	public void PrintTokens(String filename) throws IOException
 	{
+		BufferedWriter OutputFile = new BufferedWriter(new FileWriter("output.txt"));
 		String token;
-		System.out.printf("%-30.30s  %-30.30s%n", "Token Value", "Token Type");
-		System.out.print("\n");
+		OutputFile.write(String.format("%-30.30s  %-30.30s%n", "Token Value", "Token Type"));
+		OutputFile.write("\n");
 		for(int i = 0; i < Tokens.size(); i++)
 		{
 			token = Tokens.get(i);
 			if(TOKEN_NAMES.containsKey(token))
 			{
-				System.out.printf("%-30.30s  %-30.30s%n", token, TOKEN_NAMES.get(token));
+				OutputFile.write(String.format("%-30.30s  %-30.30s%n", token, TOKEN_NAMES.get(token)));
 			}
 			else if(RESERVED_WORDS.contains(token))
 			{
-				System.out.printf("%-30.30s  %-30.30s%n", token, "RESERVED");
+				OutputFile.write(String.format("%-30.30s  %-30.30s%n", token, "RESERVED"));
 			}
 			else
 			{
@@ -167,14 +171,15 @@ public class TinyScanner {
 				}
 				if(isNumber)
 				{
-					System.out.printf("%-30.30s  %-30.30s%n", token, "NUMBER");
+					OutputFile.write(String.format("%-30.30s  %-30.30s%n", token, "NUMBER"));
 				}
 				else
 				{
-					System.out.printf("%-30.30s  %-30.30s%n", token, "IDENTIFIER");
+					OutputFile.write(String.format("%-30.30s  %-30.30s%n", token, "IDENTIFIER"));
 				}
 			}
 		}
+		OutputFile.close();
 	}
 	
 	public ArrayList<String> getTokens()

@@ -1,0 +1,15 @@
+Token Value                     Token Type                    
+
+read                            RESERVED                      
+:=                              ASSIGN                        
+x                               IDENTIFIER                    
+index                           IDENTIFIER                    
++                               PLUS                          
+b                               IDENTIFIER                    
+y                               IDENTIFIER                    
+-                               MINUS                         
+c                               IDENTIFIER                    
+(                               LEFT BRACKET                  
+u                               IDENTIFIER                    
+)                               RIGHT BRACKET                 
+;                               SEMI                          
