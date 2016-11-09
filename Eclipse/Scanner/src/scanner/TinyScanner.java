@@ -70,6 +70,8 @@ public class TinyScanner {
 					NextState = State.DONE;
 				}
 				i++;
+				if(i >= line.length())
+					NextState = State.DONE;
 				break;
 				
 			case IN_COMMENT:

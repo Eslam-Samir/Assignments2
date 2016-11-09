@@ -1,32 +1,34 @@
 Token Value                     Token Type                    
 
-index                           IDENTIFIER                    
-:=                              ASSIGN                        
-24                              NUMBER                        
+read                            RESERVED                      
+x                               IDENTIFIER                    
 ;                               SEMI                          
 if                              RESERVED                      
-index                           IDENTIFIER                    
-=                               EQ                            
-12                              NUMBER                        
-y                               IDENTIFIER                    
+0                               NUMBER                        
+<                               LT                            
+x                               IDENTIFIER                    
+then                            RESERVED                      
+fact                            IDENTIFIER                    
 :=                              ASSIGN                        
 1                               NUMBER                        
 ;                               SEMI                          
-u                               IDENTIFIER                    
+repeat                          RESERVED                      
+fact                            IDENTIFIER                    
 :=                              ASSIGN                        
-2                               NUMBER                        
+fact                            IDENTIFIER                    
+*                               MUL                           
+x                               IDENTIFIER                    
 ;                               SEMI                          
-end                             RESERVED                      
-read                            RESERVED                      
+x                               IDENTIFIER                    
 :=                              ASSIGN                        
 x                               IDENTIFIER                    
-index                           IDENTIFIER                    
-+                               PLUS                          
-b                               IDENTIFIER                    
-y                               IDENTIFIER                    
 -                               MINUS                         
-c                               IDENTIFIER                    
-(                               LEFT BRACKET                  
-u                               IDENTIFIER                    
-)                               RIGHT BRACKET                 
+1                               NUMBER                        
+until                           RESERVED                      
+x                               IDENTIFIER                    
+=                               EQ                            
+0                               NUMBER                        
 ;                               SEMI                          
+write                           RESERVED                      
+fact                            IDENTIFIER                    
+end                             RESERVED                      
