@@ -145,7 +145,7 @@ public class TinyScanner {
 		BufferedWriter OutputFile = new BufferedWriter(new FileWriter("output.txt"));
 		String token;
 		OutputFile.write(String.format("%-30.30s  %-30.30s%n", "Token Value", "Token Type"));
-		OutputFile.write("\n");
+		OutputFile.write("\r\n");
 		for(int i = 0; i < Tokens.size(); i++)
 		{
 			token = Tokens.get(i);
