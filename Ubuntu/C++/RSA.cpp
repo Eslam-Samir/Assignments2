@@ -1,7 +1,7 @@
 #include <iostream>
 #include <stdlib.h>
 #include <string>
-#include <bitset>
+
 #define P_SIZE_IN_BYTES 64 // 512/8 = 64
 #define Q_SIZE_IN_BYTES 64
 #define N_SIZE_IN_BYTES P_SIZE_IN_BYTES+Q_SIZE_IN_BYTES
@@ -14,6 +14,7 @@ byte reminderBy2(string & s);
 void divideBy2(string & s);
 void fillArrayFromString(string & s, byte * s_arr, int size);
 void multiplyLargeNums(byte * a, byte * b, byte * result, int a_size, int b_size, int res_size);
+void print(byte * arr, int size);
 
 int main()
 {
@@ -21,25 +22,69 @@ int main()
     string p_str, q_str, e_str, operation; 
     p_str = "109026109913291424366305511581086089650628117463925776754560048454991130443047109026109913291424366305511581086089650628117463925776754560048454991130443047";
     q_str = "109026109913291424366305511581086089650628117463925776754560048454991130443047109026109913291424366305511581086089600628117463925776754560048454991130443047";
+    //p_str = "10000";
+    //q_str = "32154";
     /*
     getline(cin, p_str);
     getline(cin, q_str);
     getline(cin, e_str);
     */
     fillArrayFromString(p_str, p, P_SIZE_IN_BYTES);
-    fillArrayFromString(p_str, p, Q_SIZE_IN_BYTES);
+    fillArrayFromString(q_str, q, Q_SIZE_IN_BYTES);
+    multiplyLargeNums(p, q, n, P_SIZE_IN_BYTES, Q_SIZE_IN_BYTES, N_SIZE_IN_BYTES);
+    print(p, P_SIZE_IN_BYTES);
+    print(q, Q_SIZE_IN_BYTES);
+    print(n, N_SIZE_IN_BYTES);
     //fillArrayFromString(e_str, e, E_SIZE_IN_BYTES);
-    
+   /* 
     while(true)
     {
         getline(cin, operation);
-    }
+    }*/
     return 0;
+}
+
+void print(byte * arr, int size)
+{
+    for(int i = 0; i<size; i++)
+    {
+        cout<< +arr[i] << " ";
+    }
+    cout <<endl<<endl;
 }
 
 void multiplyLargeNums(byte * a, byte * b, byte * result, int a_size, int b_size, int res_size)
 {
-    
+    int value, carry, sum;
+    for(int i = 0; i < a_size; i++)
+    {
+        for(int j = 0; j < b_size; j++)
+        {
+            value = a[i] * b[j];
+            carry = value/256;
+            sum = result[i+j] + ((a[i] * b[j]) % 256);
+            
+            if(sum > 255 )
+            {
+                result[i+j+1] += 1;
+                result[i+j] = (sum - 256);
+            }
+            else
+            {
+                result[i+j] = sum;
+            }
+            sum = result[i+j+1] + carry;
+            if(sum > 255 )
+            {
+                result[i+j+2] += 1;
+                result[i+j+1] = (sum - 256);
+            }
+            else
+            {
+                result[i+j+1] = sum;
+            }
+        }
+    }
 }
 
 void fillArrayFromString(string & s, byte * s_arr, int size)
@@ -50,7 +95,7 @@ void fillArrayFromString(string & s, byte * s_arr, int size)
         reminder = reminderBy2(s);
         
         s_arr[i/8] += (reminder << i%8);
-        //cout << "reminder: " << +reminder << " index " << i << "  " << +s_arr[i/8] << endl; // Debugging
+        cout << "reminder: " << +reminder << " index " << i << "  " << +s_arr[i/8] << endl; // Debugging
         divideBy2(s);
         if(s[0] == '0')
         {
