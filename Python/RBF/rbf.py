@@ -2,6 +2,7 @@ import numpy as np
 import random
 import matplotlib.pyplot as plt
 
+
 # Usage: data = dbmoon(N, d, r, w)
 # doublemoon.m - genereate the double moon data set in Haykin's book titled
 # "neural networks and learning machine" third edition 2009 Pearson
@@ -49,11 +50,12 @@ def dbmoon(N=1000, d=1, r=10, w=6):
     # axis([-r-w2 2 * r+w2 -r-w2-d r+w2])
     return data
 
+
 def k_means(data, k, threshold):
     indices = random.sample(range(len(data)), k)
     mu = np.array([data[i] for i in sorted(indices)])
     old_cost = 0
-    while (True):
+    while True:
         distances = {}
         for i in range(k):
             distances[i] = np.sum(((data[:] - mu[i]) ** 2), axis=1)
@@ -73,6 +75,7 @@ def k_means(data, k, threshold):
         old_cost = cost
 
     return mu
+
 
 # initialization
 
