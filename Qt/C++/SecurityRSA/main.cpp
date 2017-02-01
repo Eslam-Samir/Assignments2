@@ -14,11 +14,13 @@ class BigNumber
 private:
     uint32_t * bigNum;
     int size;
+    bool negative;
 public:
     BigNumber(int size)
     {
         bigNum = new uint32_t[size]();
         this->size = size;
+        this->negative = false;
         for(int i = 0; i < this->size; i++)
         {
             bigNum[i] = 0;
@@ -27,7 +29,7 @@ public:
     BigNumber(string & s)
     {
         this->size = ceil(s.length()/9.0);
-
+        this->negative = false;
         bigNum = new uint32_t[this->size]();
         for(int i = 0; i < this->size; i++)
         {
@@ -47,10 +49,20 @@ public:
             }
         }
     }
+    BigNumber(BigNumber *b) {
+        this->size = b->getSize();
+        this->negative = b->isNegative();
+        this->bigNum = new uint32_t[this->size]();
+        for(int i = 0; i < this->size; i++)
+        {
+            bigNum[i] = b->value()[i];
+        }
+    }
     BigNumber operator=(BigNumber& b)
     {
         delete[] bigNum;
         this->size = b.getSize();
+        this->negative = b.isNegative();
         bigNum = new uint32_t[this->size]();
         for(int i = 0; i < this->size; i++)
         {
@@ -98,6 +110,64 @@ public:
             result.expand(size+1);
             result.value()[size] = 1;
         }
+        return result;
+    }
+    BigNumber operator-(BigNumber& b)
+    {
+        BigNumber *num1, *num2;
+        bool negative = false;
+        if(this->getSize() == b.getSize())
+        {
+            if(this->value()[this->getSize()-1] >= b.value()[b.getSize()-1])
+            {
+                num1 = this;
+                num2 = &b;
+            }
+            else
+            {
+                num1 = &b;
+                num2 = this;
+                negative = true;
+            }
+        }
+        else if(this->getSize() > b.getSize())
+        {
+            num1 = this;
+            num2 = &b;
+        }
+        else
+        {
+            num1 = &b;
+            num2 = this;
+            negative = true;
+        }
+        BigNumber result(num1);
+        result.setNegative(negative);
+        for(int i = 0; i < result.getSize(); i++)
+        {
+            if(num2->getSize() <= i)
+            {
+                break;
+            }
+            if(result.value()[i] < num2->value()[i])
+            {
+                result.value()[i] += 1000000000;
+                for(int j = i+1; j < result.getSize(); j++)
+                {
+                    if(result.value()[j] > 0)
+                    {
+                        result.value()[j]--;
+                        break;
+                    }
+                    else
+                    {
+                        result.value()[j] += 999999999;
+                    }
+                }
+            }
+            result.value()[i] -= num2->value()[i];
+        }
+        result.shrink();
         return result;
     }
 
@@ -181,6 +251,15 @@ public:
     {
         return this->size;
     }
+    bool isNegative()
+    {
+        return this->negative;
+    }
+    void setNegative(bool n)
+    {
+        this->negative = n;
+    }
+
     uint32_t * value()
     {
         return bigNum;
@@ -206,6 +285,12 @@ int main()
     q_str = "2065420353441994803054315079370635087865508423962173447811880044936318158815802774220405304957787464676771309034463560633713497474362222775683960029689473";
     BigNumber number1(p_str);
     BigNumber number2(q_str);
+    BigNumber res = number1 - number2;
+    number1.print();
+    number2.print();
+    res.print();
+    BigNumber res2 = number2 - number1;
+    res2.print();
     //number1.print();
     //number2.print();
     //BigNumber res = number1 * number2;
