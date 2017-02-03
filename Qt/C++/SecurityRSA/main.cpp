@@ -1,6 +1,7 @@
 ﻿#include <iostream>
 #include <stdlib.h>
 #include <string>
+#include <cstring>
 #include <cstdint>
 #include <cmath>
 #include <ctime>
@@ -49,6 +50,29 @@ public:
             }
         }
     }
+    BigNumber(const char s[])
+    {
+        this->size = ceil(strlen(s)/9.0);
+        this->negative = false;
+        bigNum = new uint32_t[this->size]();
+        for(int i = 0; i < this->size; i++)
+        {
+            bigNum[i] = 0;
+        }
+        for(int i = 0, length = strlen(s); i < this->size; i++)
+        {
+            int j = length-(i+1)*9;
+            int limit = j+9;
+            if(j < 0)
+            {
+                j = 0;
+            }
+            for(; j < limit; j++)
+            {
+                bigNum[i] = 10*bigNum[i] + (s[j] - '0');
+            }
+        }
+    }
     BigNumber(BigNumber *b) {
         this->size = b->getSize();
         this->negative = b->isNegative();
@@ -58,9 +82,15 @@ public:
             bigNum[i] = b->value()[i];
         }
     }
-    BigNumber operator=(BigNumber& b)
+    ~BigNumber()
     {
         delete[] bigNum;
+    }
+
+    void operator=(BigNumber b)
+    {
+        if(bigNum != nullptr)
+            delete[] bigNum;
         this->size = b.getSize();
         this->negative = b.isNegative();
         bigNum = new uint32_t[this->size]();
@@ -72,6 +102,8 @@ public:
 
     BigNumber operator+(BigNumber& b)
     {
+        this->shrink();
+        b.shrink();
         int size;
         BigNumber *num1, *num2;
         if(b.getSize() > this->getSize())
@@ -114,6 +146,8 @@ public:
     }
     BigNumber operator-(BigNumber& b)
     {
+        this->shrink();
+        b.shrink();
         BigNumber *num1, *num2;
         bool negative = false;
         if(this->getSize() == b.getSize())
@@ -173,6 +207,8 @@ public:
 
     BigNumber operator*(BigNumber& b)
     {
+        this->shrink();
+        b.shrink();
         int size = b.getSize() + this->getSize();
         BigNumber result(size);
         uint64_t mul;
@@ -208,6 +244,108 @@ public:
         result.shrink();
         return result;
     }
+
+    BigNumber operator/(BigNumber& b)
+    {
+        this->shrink();
+        b.shrink();
+        BigNumber nom = *this;
+        if(this->getSize() < b.getSize())
+        {
+            return 0;
+        }
+        else
+        {
+            int size_diff = this->getSize() - b.getSize();
+            BigNumber initial_factor("1");
+            BigNumber ten("10");
+            for(int i = 0; i < size_diff; i++)
+            {
+                initial_factor = initial_factor * ten;
+            }
+            initial_factor.print();
+            initial_factor = initial_factor * b;
+            initial_factor.print();
+            BigNumber two("2");
+            BigNumber factor = initial_factor * two;
+            cout<<"this\n";
+            this->print();/*
+            while(factor < nom)
+            {
+                cout<<"this\n";
+                //initial_factor = factor;
+                this->print();
+                factor = factor * two;
+                //initial_factor.print();
+            }*/
+            for(int i = 0; i < 2; i++)
+            {
+                initial_factor = factor;
+                this->print();
+                //factor = factor * two;
+                initial_factor.print();
+            }
+        }
+        return b;
+    }
+    bool operator<(BigNumber& b)
+    {
+        this->shrink();
+        b.shrink();
+        if(this->getSize() < b.getSize())
+        {
+            return true;
+        }
+        else if(this->getSize() > b.getSize())
+        {
+            return false;
+        }
+        else
+        {
+            for(int i = this->getSize()-1; i >= 0; i--)
+            {
+                if(this->value()[i] < b.value()[i])
+                {
+                    return true;
+                }
+                else if(this->value()[i] > b.value()[i])
+                {
+                    return false;
+                }
+            }
+            return false;
+        }
+    }
+
+    bool operator>(BigNumber& b)
+    {
+        this->shrink();
+        b.shrink();
+        if(this->getSize() > b.getSize())
+        {
+            return true;
+        }
+        else if(this->getSize() < b.getSize())
+        {
+            return false;
+        }
+        else
+        {
+            for(int i = this->getSize()-1; i >= 0; i--)
+            {
+                if(this->value()[i] > b.value()[i])
+                {
+                    return true;
+                }
+                else if(this->value()[i] < b.value()[i])
+                {
+                    return false;
+                }
+            }
+            return false;
+        }
+    }
+
     void expand(int size)
     {
         if(size <= this->size)
@@ -236,6 +374,10 @@ public:
             {
                 break;
             }
+        }
+        if(i == this->getSize()-1 || this->getSize() == 1)
+        {
+            return;
         }
         uint32_t * temp = bigNum;
         this->size = i+1;
@@ -285,12 +427,10 @@ int main()
     q_str = "2065420353441994803054315079370635087865508423962173447811880044936318158815802774220405304957787464676771309034463560633713497474362222775683960029689473";
     BigNumber number1(p_str);
     BigNumber number2(q_str);
-    BigNumber res = number1 - number2;
+    BigNumber res = number1 / number2;
     number1.print();
     number2.print();
-    res.print();
-    BigNumber res2 = number2 - number1;
-    res2.print();
+
     //number1.print();
     //number2.print();
     //BigNumber res = number1 * number2;
