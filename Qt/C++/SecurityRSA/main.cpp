@@ -3,7 +3,6 @@
 #include <string>
 #include <cstring>
 #include <cstdint>
-#include <cmath>
 #include <ctime>
 #include <ostream>
 #include <iomanip>
@@ -25,6 +24,16 @@ public:
         for(int i = 0; i < this->size; i++)
         {
             bigNum[i] = 0;
+        }
+    }
+    BigNumber(uint32_t * big, int size)
+    {
+        bigNum = new uint32_t[size]();
+        this->size = size;
+        this->negative = false;
+        for(int i = 0; i < this->size; i++)
+        {
+            bigNum[i] = big[i];
         }
     }
     BigNumber(string & s)
@@ -82,15 +91,9 @@ public:
             bigNum[i] = b->value()[i];
         }
     }
-    ~BigNumber()
-    {
-        delete[] bigNum;
-    }
 
     void operator=(BigNumber b)
     {
-        if(bigNum != nullptr)
-            delete[] bigNum;
         this->size = b.getSize();
         this->negative = b.isNegative();
         bigNum = new uint32_t[this->size]();
@@ -256,42 +259,80 @@ public:
         }
         else
         {
-            int size_diff = this->getSize() - b.getSize();
-            BigNumber initial_factor("1");
-            BigNumber ten("10");
-            for(int i = 0; i < size_diff; i++)
+            BigNumber sum("0");
+            do
             {
-                initial_factor = initial_factor * ten;
-            }
-            initial_factor.print();
-            initial_factor = initial_factor * b;
-            initial_factor.print();
-            BigNumber two("2");
-            BigNumber factor = initial_factor * two;
-            cout<<"this\n";
-            this->print();/*
-            while(factor < nom)
-            {
-                cout<<"this\n";
-                //initial_factor = factor;
-                this->print();
-                factor = factor * two;
-                //initial_factor.print();
-            }*/
-            for(int i = 0; i < 2; i++)
-            {
-                initial_factor = factor;
-                this->print();
-                //factor = factor * two;
-                initial_factor.print();
-            }
+                uint64_t num = 0;
+                if(nom.value()[nom.getSize()-1] > b.value()[b.getSize()-1])
+                {
+                    num = nom.value()[nom.getSize()-1];
+                }
+                else
+                {
+                    num = (uint64_t) nom.value()[nom.getSize()-1]*1000000000 + nom.value()[nom.getSize()-2];
+                }
+                uint32_t d = (num / b.value()[b.getSize()-1]);
+                BigNumber div(&d, 1);
+                BigNumber result = div * b;
+                int size = nom.getSize()-result.getSize();
+                result = result.append_zeros(size);
+                while(result > nom)
+                {
+                    d--;
+                    div = BigNumber(&d, 1);
+                    result = div * b;
+                    result = result.append_zeros(size);
+                }
+                nom = nom - result;
+                sum = sum.concatenate(div);
+                nom.shrink();
+            } while(nom > b);
+            return sum;
         }
-        return b;
     }
-    bool operator<(BigNumber& b)
+
+    BigNumber operator%(BigNumber& b)
     {
         this->shrink();
         b.shrink();
+        BigNumber nom = *this;
+        if(this->getSize() < b.getSize())
+        {
+            return nom;
+        }
+        else
+        {
+            do
+            {
+                uint64_t num = 0;
+                if(nom.value()[nom.getSize()-1] > b.value()[b.getSize()-1])
+                {
+                    num = nom.value()[nom.getSize()-1];
+                }
+                else
+                {
+                    num = (uint64_t) nom.value()[nom.getSize()-1]*1000000000 + nom.value()[nom.getSize()-2];
+                }
+                uint32_t d = (num / b.value()[b.getSize()-1]);
+                BigNumber div(&d, 1);
+                BigNumber result = div * b;
+                int size = nom.getSize()-result.getSize();
+                result = result.append_zeros(size);
+                while(result > nom)
+                {
+                    d--;
+                    div = BigNumber(&d, 1);
+                    result = div * b;
+                    result = result.append_zeros(size);
+                }
+                nom = nom - result;
+                nom.shrink();
+            } while(nom > b);
+            return nom;
+        }
+    }
+    bool operator<(BigNumber& b)
+    {
         if(this->getSize() < b.getSize())
         {
             return true;
@@ -319,31 +360,52 @@ public:
 
     bool operator>(BigNumber& b)
     {
-        this->shrink();
-        b.shrink();
-        if(this->getSize() > b.getSize())
+        return b < *this;
+    }
+    BigNumber operator>>(int amount)
+    {
+        uint32_t * tmp = new uint32_t[this->getSize()];
+        for(int j = 0; j < amount; j++)
         {
-            return true;
-        }
-        else if(this->getSize() < b.getSize())
-        {
-            return false;
-        }
-        else
-        {
-            for(int i = this->getSize()-1; i >= 0; i--)
+            for(int i = 0; i < this->getSize()-1; i++)
             {
-                if(this->value()[i] > b.value()[i])
-                {
-                    return true;
-                }
-                else if(this->value()[i] < b.value()[i])
-                {
-                    return false;
-                }
+                tmp[i] = this->value()[i]/10 + (this->value()[i+1] % 10) * 100000000;
             }
-            return false;
+            tmp[this->getSize()-1] = this->value()[this->getSize()-1]/10;
         }
+        BigNumber result(tmp, this->getSize());
+        result.shrink();
+        return result;
+    }
+    BigNumber concatenate(BigNumber &b)
+    {
+        int size = this->getSize() + b.getSize();
+        uint32_t * tmp = new uint32_t[size];
+        for(int i = 0; i < b.getSize(); i++)
+        {
+            tmp[i] = b.value()[i];
+        }
+        for(int i = b.getSize(); i < size; i++)
+        {
+            tmp[i] = this->value()[i-b.getSize()];
+        }
+        BigNumber result(tmp, size);
+        result.shrink();
+        return result;
+    }
+    BigNumber append_zeros(int numberOfZeros)
+    {
+        uint32_t * tmp = new uint32_t[numberOfZeros+this->getSize()];
+        for(int i = 0; i < numberOfZeros; i++)
+        {
+            tmp[i] = 0;
+        }
+        for(int i = numberOfZeros; i < numberOfZeros+this->getSize(); i++)
+        {
+            tmp[i] = this->value()[i-numberOfZeros];
+        }
+        BigNumber result(tmp, numberOfZeros+this->getSize());
+        return result;
     }
 
     void expand(int size)
@@ -393,6 +455,21 @@ public:
     {
         return this->size;
     }
+    int numberOfDigits()
+    {
+        int count = 0;
+        for(int i = 0; i <= this->getSize()-2; i++)
+        {
+            count += 9;
+        }
+        uint32_t num = this->value()[this->getSize()-1];
+        while(num > 0)
+        {
+            num /= 10;
+            count++;
+        }
+        return count;
+    }
     bool isNegative()
     {
         return this->negative;
@@ -426,25 +503,27 @@ int main()
     p_str = "12369571528747655798110188786567180759626910465726920556567298659370399748072366507234899432827475865189642714067836207300153035059472237275816384410077871";
     q_str = "2065420353441994803054315079370635087865508423962173447811880044936318158815802774220405304957787464676771309034463560633713497474362222775683960029689473";
     BigNumber number1(p_str);
-    BigNumber number2(q_str);
-    BigNumber res = number1 / number2;
-    number1.print();
-    number2.print();
+    BigNumber number2("593145345351");
+    //BigNumber number2(q_str);
+    BigNumber res = number1 % number2;
+    res.print();
+    //number1.print();
+    //number2.print();
 
     //number1.print();
     //number2.print();
     //BigNumber res = number1 * number2;
     //res.print();
-/*
+    /*
     clock_t begin = clock();
-    for(int i = 0; i < 1000; i++)
+    for(int i = 0; i < 10; i++)
     {
-        BigNumber res = number1 * number2;
+        BigNumber res = number1 / number2;
     }
     clock_t end = clock();
     double elapsed_secs = double(end - begin) / (CLOCKS_PER_SEC / 1000);
     cout << elapsed_secs << endl;
-*/
+    */
     //p_str = "10000";
     //q_str = "32154";
     /*
