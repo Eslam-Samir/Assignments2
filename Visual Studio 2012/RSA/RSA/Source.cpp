@@ -8,6 +8,8 @@
 #include <ostream>
 #include <iomanip>
 #include <map>
+#include <stack>
+#include <vector>
 
 using namespace std;
 
@@ -17,7 +19,7 @@ private:
     uint32_t * bigNum;
     int size;
     bool negative;
-	static map<int, BigNumber*> * FactorsOfTwo;
+	static map<int, BigNumber> * FactorsOfTwo;
 
 public:
     BigNumber(int size)
@@ -101,14 +103,13 @@ public:
 		if(FactorsOfTwo != nullptr)
 			return;
 
-		FactorsOfTwo = new map<int, BigNumber*>();
-		BigNumber * number = new BigNumber("1");
+		FactorsOfTwo = new map<int, BigNumber>();
+		BigNumber * initial = new BigNumber("1");
 		BigNumber two("2");
-		FactorsOfTwo->insert(std::pair<const int, BigNumber*>(0, number));
+		FactorsOfTwo->insert(std::pair<const int, BigNumber>(0, initial));
 		for(int i = 1; i < 1024; i++)
 		{
-			number = &((*number) * two);
-			FactorsOfTwo->insert(std::pair<const int, BigNumber*>(i, number));
+			FactorsOfTwo->insert(std::pair<const int, BigNumber>(i, FactorsOfTwo->at(i-1) * two));
 		}
 	}
 
@@ -273,10 +274,23 @@ public:
         this->shrink();
         b.shrink();
         BigNumber nom = *this;
-        if(this->getSize() < b.getSize())
+        if(nom < b)
         {
             return 0;
         }
+		else if(b.getSize() == 1 && b.value()[0] == 2) // division by 2
+		{
+			uint64_t num;
+			uint32_t carry = 0;
+			for(int i = nom.getSize()-1; i >= 0; i--)
+			{
+				num = (uint64_t) carry*1000000000 + nom.value()[i];
+				carry = num % 2;
+				nom.value()[i] = num / 2;
+			}
+			nom.shrink();
+			return nom;
+		}
         else
         {
             BigNumber sum("0");
@@ -335,10 +349,16 @@ public:
         this->shrink();
         b.shrink();
         BigNumber nom = *this;
-        if(this->getSize() < b.getSize())
+        if(nom < b)
         {
             return nom;
         }
+		else if(b.getSize() == 1 && b.value()[0] == 2) // mod 2
+		{
+			uint32_t rem = nom.value()[0] % 2;
+			BigNumber result(&rem, 1);
+			return result;
+		}
         else
         {
             do
@@ -387,7 +407,48 @@ public:
             return nom;
         }
     }
-    bool operator<(BigNumber& b)
+	
+	BigNumber exponentiate(BigNumber &power, BigNumber &mod)
+	{
+		stack<int> powers;
+		vector<BigNumber> factors;
+		BigNumber test = power;
+		for(int i = 1023; i >= 0; i--)
+		{
+			if(test >= FactorsOfTwo->at(i))
+			{
+				test = test - FactorsOfTwo->at(i);
+				powers.push(i);
+			}
+		}
+		BigNumber factor = *this;
+		if(powers.top() == 0)
+		{
+			factors.push_back(factor);
+			powers.pop();
+		}
+		for(int i = 1; i < 1023; i++)
+		{
+			if(powers.empty())
+			{
+				break;
+			}
+			factor = factor * factor;
+			factor = factor % mod;
+			if(powers.top() == i)
+			{
+				factors.push_back(factor);
+				powers.pop();
+			}
+		}
+		BigNumber result("1");
+		for(int i = 0; i < factors.size(); i++)
+		{
+			result = (result * factors[i]) % mod;
+		}
+		return result;
+	}
+    bool operator<(BigNumber &b)
     {
         if(this->getSize() < b.getSize())
         {
@@ -418,21 +479,43 @@ public:
     {
         return b < *this;
     }
-	BigNumber operator>>(int amount)
-	{
-		uint32_t * tmp = new uint32_t[this->getSize()];
-		for(int j = 0; j < amount; j++)
-		{
-			for(int i = 0; i < this->getSize()-1; i++)
-			{
-				tmp[i] = this->value()[i]/10 + (this->value()[i+1] % 10) * 100000000;
-			}
-			tmp[this->getSize()-1] = this->value()[this->getSize()-1]/10;
-		}
-		BigNumber result(tmp, this->getSize());
-		result.shrink();
-		return result;
-	}
+
+	bool operator<=(BigNumber &b)
+    {
+        if(this->getSize() < b.getSize())
+        {
+            return true;
+        }
+        else if(this->getSize() > b.getSize())
+        {
+            return false;
+        }
+        else
+        {
+            for(int i = this->getSize()-1; i >= 0; i--)
+            {
+                if(this->value()[i] < b.value()[i])
+                {
+                    return true;
+                }
+                else if(this->value()[i] > b.value()[i])
+                {
+                    return false;
+                }
+				else if(this->value()[i] == b.value()[i] && i == 0)
+				{
+					return true;
+				}
+            }
+            return false;
+        }
+    }
+
+	bool operator>=(BigNumber& b)
+    {
+        return b <= *this;
+    }
+
 	BigNumber concatenate(BigNumber &b)
 	{
 		int size = this->getSize() + b.getSize();
@@ -553,7 +636,7 @@ public:
     }
 };
 
-map<int, BigNumber*> * BigNumber::FactorsOfTwo;
+map<int, BigNumber> * BigNumber::FactorsOfTwo;
 
 int main()
 {
@@ -564,15 +647,19 @@ int main()
     BigNumber number1(p_str);
     //BigNumber number2("593145345351");
 	BigNumber number2(q_str);
-    BigNumber res = number1 / number2;
-    res.print();
-    //number1.print();
-    //number2.print();
+	BigNumber one("1");
+    BigNumber n = number1 * number2;
+    n.print();
+    
+	BigNumber res = number1.exponentiate(number2, number2);
+	res.print();
+	/*
+	BigNumber n1("2");
+	BigNumber n2("1000");
+	BigNumber mod("200");
+	BigNumber res = n1.exponentiate(n2, mod);
+	res.print();*/
 
-    //number1.print();
-    //number2.print();
-    //BigNumber res = number1 * number2;
-    //res.print();
 	/*
     clock_t begin = clock();
     for(int i = 0; i < 10; i++)
