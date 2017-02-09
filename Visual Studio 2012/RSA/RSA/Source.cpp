@@ -22,6 +22,13 @@ private:
 	static map<int, BigNumber> * FactorsOfTwo;
 
 public:
+	BigNumber()
+    {
+        bigNum = new uint32_t[1]();
+        this->size = 1;
+        this->negative = false;
+        bigNum[0] = 0;
+    }
     BigNumber(int size)
     {
         bigNum = new uint32_t[size]();
@@ -268,7 +275,102 @@ public:
         result.shrink();
         return result;
     }
+
+	BigNumber operator/(BigNumber& b)
+    {
+        this->shrink();
+        b.shrink();
+        BigNumber nom = *this;
+        if(this->getSize() < b.getSize())
+        {
+            return 0;
+        }
+        else
+        {
+			BigNumber factor("1");
+			BigNumber two("2");
+			BigNumber sum("0");
+			BigNumber result = b;
+			vector<BigNumber> results;
+			vector<BigNumber> factors;
+			factors.push_back(factor);
+			results.push_back(result);
+			while(b < nom)
+            {
+
+				while(result < nom.getPart(b.getSize()))
+				{
+					result = result * two;
+					factor = factor * two;
+					factors.push_back(factor);
+					results.push_back(result);
+				}
+            
+				int size = results.size();
+				for(int i = size-1; i >= 0; i--)
+				{
+					if(results[i] < nom.getPart(results[i].getSize()))
+					{
+						int diff_size = nom.getSize() - results[i].getSize();
+						sum = sum + factors[i].append_zeros(diff_size);
+						nom = nom - results[i].append_zeros(diff_size);
+						break;
+					}
+				}
+				nom.shrink();
+				sum.print();
+			}
+			sum.shrink();
+			return sum;
+		}
+    }
+
+	BigNumber operator%(BigNumber& b)
+    {
+        this->shrink();
+        b.shrink();
+        BigNumber nom = *this;
+        if(this->getSize() < b.getSize())
+        {
+            return nom;
+        }
+        else
+        {
+			BigNumber factor("1");
+			BigNumber two("2");
+			BigNumber result = b;
+			vector<BigNumber> results;
+			vector<BigNumber> factors;
+			factors.push_back(factor);
+			results.push_back(result);
+			while(b < nom)
+            {
+
+				while(result < nom.getPart(b.getSize()))
+				{
+					result = result * two;
+					factor = factor * two;
+					factors.push_back(factor);
+					results.push_back(result);
+				}
+            
+				int size = results.size();
+				for(int i = size-1; i >= 0; i--)
+				{
+					if(results[i] < nom.getPart(results[i].getSize()))
+					{
+						int diff_size = nom.getSize() - results[i].getSize();
+						nom = nom - results[i].append_zeros(diff_size);
+						break;
+					}
+				}
+				nom.shrink();
+			}
+			return nom;
+		}
+    }
 	
+/*
     BigNumber operator/(BigNumber& b)
     {
         this->shrink();
@@ -407,7 +509,8 @@ public:
             return nom;
         }
     }
-	
+*/
+
 	BigNumber exponentiate(BigNumber &power, BigNumber &mod)
 	{
 		stack<int> powers;
@@ -472,6 +575,33 @@ public:
                 }
             }
             return false;
+        }
+    }
+
+	bool operator==(BigNumber &b)
+    {
+        if(this->getSize() < b.getSize())
+        {
+            return false;
+        }
+        else if(this->getSize() > b.getSize())
+        {
+            return false;
+        }
+        else
+        {
+            for(int i = this->getSize()-1; i >= 0; i--)
+            {
+                if(this->value()[i] < b.value()[i])
+                {
+                    return false;
+                }
+                else if(this->value()[i] > b.value()[i])
+                {
+                    return false;
+                }
+            }
+            return true;
         }
     }
 
@@ -545,6 +675,24 @@ public:
 		}
 		BigNumber result(tmp, numberOfZeros+this->getSize());
 		return result;
+	}
+
+	BigNumber getPart(int size)
+	{
+		if(size >= this->getSize())
+		{
+			return *this;
+		}
+		else
+		{
+			uint32_t * res = new uint32_t[size];
+			for(int i = this->getSize()-1; i >= this->getSize()-size; i--)
+			{
+				res[i-size] = this->value()[i];
+			}
+			BigNumber result(res, size);
+			return result;
+		}
 	}
 
     void expand(int size)
@@ -625,12 +773,12 @@ public:
 
     void print()
     {
-        //cout << bigNum[this->size-1];
-        cout<< bigNum[this->size-1]/1000000 << " " << (bigNum[this->size-1]/1000)%1000 << " " << bigNum[this->size-1]%1000 << " ";
+        cout << bigNum[this->size-1];
+        //cout<< bigNum[this->size-1]/1000000 << " " << (bigNum[this->size-1]/1000)%1000 << " " << bigNum[this->size-1]%1000 << " ";
         for(int i = this->size-2; i >= 0; i--)
         {
-            //cout<< setw(9) << setfill('0') << bigNum[i];
-            cout<< bigNum[i]/1000000 << " " << (bigNum[i]/1000)%1000 << " " << bigNum[i]%1000 << " ";
+            cout<< setw(9) << setfill('0') << bigNum[i];
+            //cout<< bigNum[i]/1000000 << " " << (bigNum[i]/1000)%1000 << " " << bigNum[i]%1000 << " ";
         }
         cout <<endl<<endl;
     }
@@ -646,12 +794,18 @@ int main()
     q_str = "2065420353441994803054315079370635087865508423962173447811880044936318158815802774220405304957787464676771309034463560633713497474362222775683960029689473";
     BigNumber number1(p_str);
     //BigNumber number2("593145345351");
-	BigNumber number2(q_str);
+	BigNumber number2("5");
 	BigNumber one("1");
     BigNumber n = number1 * number2;
-    n.print();
+    //n.print();
     
-	BigNumber res = number1.exponentiate(number2, number2);
+	BigNumber res = number1 % number2;
+
+	BigNumber test("2042469761537681782838613389714005320299368345916053317507898434688808953993352636132872908038538541805786168895518404131585547687661123397396584261630506");
+
+	cout << endl << (res == test) << endl;
+
+	//BigNumber res = number1.exponentiate(number2, number2);
 	res.print();
 	/*
 	BigNumber n1("2");
