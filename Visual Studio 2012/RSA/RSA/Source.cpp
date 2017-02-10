@@ -41,7 +41,7 @@ public:
             (*bigNum)[i] = (*big)[i];
         }
     }
-    BigNumber(string & s)
+    BigNumber(string s)
     {
         int size = ceil(s.length()/9.0);
         bigNum = new vector<uint32_t>(size);
@@ -95,7 +95,7 @@ public:
     }
     ~BigNumber()
     {
-		if(bigNum != nullptr && bigNum->size()>0)
+		if(bigNum != nullptr && !bigNum->empty())
 		{
 			bigNum->clear();
 			delete bigNum;
@@ -396,7 +396,29 @@ public:
                         nom = *nom - r;
                         break;
                     }
-                }
+                }/*
+				int low = 0;
+				int high = results.size()-1;
+				while(low < high)
+				{
+					int mid = (low+high)/2;
+					if(*results[mid] > num)
+					{
+						high = mid;
+					}
+					else if(*results[mid] <= num && *results[mid+1] > num)
+					{
+						int diff_size = nom->getSize() - num_size;
+                        BigNumber f = factors[mid]->append_zeros(diff_size);
+                        BigNumber r = results[mid]->append_zeros(diff_size);
+                        nom = *nom - r;
+                        break;
+					}
+					else
+					{
+						low = mid;
+					}
+				}*/
                 nom->shrink();
             }
 			for(int i = results.size()-1; i > 0; i--)
@@ -450,6 +472,100 @@ public:
         }
         return result;
     }
+
+	bool isPrime()
+	{
+		BigNumber n(this);
+		BigNumber one("1");
+		BigNumber two("2");
+		BigNumber n_1 = n - one;
+		BigNumber q = n_1;
+		BigNumber k("0");
+
+		while(*(q % two) != one)
+		{
+			q = q / two;
+			k = k + one;
+		}
+		q.print();
+		if(k < one)
+		{
+			return false; // n is even
+		}
+		for(int i = 2; i < 12; i++) // perform the test 10 times
+		{
+			BigNumber test(to_string(i));
+			if(test >= n_1)
+			{
+				break;
+			}
+			bool inclusive = false;
+			test = test.exponentiate(q, n);
+			if(test == one || test == n_1)
+			{
+				inclusive = true;
+				continue; // inclusive
+			}
+			else
+			{
+				BigNumber j("1");
+				while(j < k)
+				{
+					test = test * test;
+					test = test % n;
+					if (test == n_1)
+					{
+						inclusive = true;
+						break; // inclusive
+					}
+					j = j + one;
+				}
+			}
+			if(!inclusive)
+			{
+				return false;
+			}
+		}
+		return true;
+	}
+	
+	BigNumber MulInverse(BigNumber &mod)
+	{
+		BigNumber A2("0");
+		BigNumber A3(mod);
+		BigNumber * B2 = new BigNumber("1");
+		BigNumber B3 = *this % mod;
+		
+		BigNumber one("1");
+		BigNumber zero("0");
+		BigNumber * Q, * temp2, * temp3;
+		B2->print();
+		B3.print();
+		while(B3 != one && B3 != zero)
+		{
+			Q = A3 / B3;
+			if(A2 < *(*Q * *B2))
+			{
+				temp2 = A2 - *(*Q * *B2);
+				temp2 = *temp2 + mod;
+			}
+			else
+			{
+				temp2 = A2 - *(*Q * *B2);
+			}
+			temp3 = A3 - *(*Q * B3);
+			A2 = B2;
+			A3 = B3;
+			B2 = temp2;
+			B3 = temp3;
+			Q->print();
+			B2->print();
+			B3.print();
+		}
+		delete temp3, Q;
+		return B2;
+	}
+	
     bool operator<(BigNumber &b)
     {
         if(this->getSize() < b.getSize())
@@ -502,6 +618,10 @@ public:
             }
             return true;
         }
+    }
+	bool operator!=(BigNumber &b)
+    {
+        return !(*this == b);
     }
 
     bool operator>(BigNumber& b)
@@ -636,21 +756,22 @@ int main()
     //BigNumber number2("593145345351");
     BigNumber number2("5");
     //BigNumber one("1");
-    BigNumber n = number1 * number3;
+    //BigNumber n = number1 * number3;
     //n.print();
 	BigNumber test1("25548364798832019218170326077010425733930233389897468141147917831084690989884562791601588954296621731652139141347541240725432606132471100644835778517336041031200174441223836394229943651678525471050219216183727749114047330431603023948126844573697946795476319956787513765533596926704755530772983549787878951983");
     BigNumber test("14189485321177462408318672114557330546247509303317064953027389385275897573822172257132865340641176247566481139072907283946504374015733753097985297565236283248440762546921964722811073666518084045676411531969697963714289397405456950756650291873251449912198252564556899004325611831203414257425755116609547354567");
-	BigNumber res = number1.exponentiate(number3, n);
-    cout << endl << (res == test) << endl;   
-	cout << endl << (n == test1) << endl;   
+	clock_t begin = clock();
+	BigNumber res = number3.MulInverse(number1);
+	//BigNumber res = number1.exponentiate(number3, n);
+	//cout << endl << number3.isPrime() << endl;
+	clock_t end = clock();
+    double elapsed_secs = double(end - begin) / (CLOCKS_PER_SEC / 1000);
+    cout << elapsed_secs << endl;
+    //cout << endl << (res == test) << endl;   
+	//cout << endl << (n == test1) << endl;   
     res.print();
-    /*
-    BigNumber n1("2");
-    BigNumber n2("1000");
-    BigNumber mod("200");
-    BigNumber res = n1.exponentiate(n2, mod);
-    res.print();*/
-
+	BigNumber res1 = *(res * number3) % number1;
+	res1.print();
     /*
     clock_t begin = clock();
     for(int i = 0; i < 10; i++)
