@@ -1,5 +1,5 @@
 #include <iostream>
-#include <stdlib.h>
+#include <cstdlib>
 #include <string>
 #include <cstring>
 #include <cstdint>
@@ -487,7 +487,6 @@ public:
 			q = q / two;
 			k = k + one;
 		}
-		q.print();
 		if(k < one)
 		{
 			return false; // n is even
@@ -539,28 +538,21 @@ public:
 		BigNumber one("1");
 		BigNumber zero("0");
 		BigNumber * Q, * temp2, * temp3;
-		B2->print();
-		B3.print();
+		bool A2_negative = false;
 		while(B3 != one && B3 != zero)
 		{
 			Q = A3 / B3;
-			if(A2 < *(*Q * *B2))
-			{
-				temp2 = A2 - *(*Q * *B2);
-				temp2 = *temp2 + mod;
-			}
-			else
-			{
-				temp2 = A2 - *(*Q * *B2);
-			}
+			A2_negative = !A2_negative;
+			temp2 = A2 + *(*Q * *B2);
 			temp3 = A3 - *(*Q * B3);
 			A2 = B2;
 			A3 = B3;
 			B2 = temp2;
 			B3 = temp3;
-			Q->print();
-			B2->print();
-			B3.print();
+		}
+		if(A2_negative)
+		{
+			B2 = mod - *B2;
 		}
 		delete temp3, Q;
 		return B2;
@@ -748,51 +740,31 @@ map<int, BigNumber*> * BigNumber::FactorsOfTwo;
 int main()
 {
     BigNumber::initialize();
-    string p_str, q_str, e_str, operation;
+
+    /*
+	string p_str, q_str, e_str, operation;
     p_str = "12369571528747655798110188786567180759626910465726920556567298659370399748072366507234899432827475865189642714067836207300153035059472237275816384410077871";
     q_str = "2065420353441994803054315079370635087865508423962173447811880044936318158815802774220405304957787464676771309034463560633713497474362222775683960029689473";
     BigNumber number1(p_str);
-	BigNumber number3(q_str);
-    //BigNumber number2("593145345351");
-    BigNumber number2("5");
-    //BigNumber one("1");
-    //BigNumber n = number1 * number3;
-    //n.print();
-	BigNumber test1("25548364798832019218170326077010425733930233389897468141147917831084690989884562791601588954296621731652139141347541240725432606132471100644835778517336041031200174441223836394229943651678525471050219216183727749114047330431603023948126844573697946795476319956787513765533596926704755530772983549787878951983");
-    BigNumber test("14189485321177462408318672114557330546247509303317064953027389385275897573822172257132865340641176247566481139072907283946504374015733753097985297565236283248440762546921964722811073666518084045676411531969697963714289397405456950756650291873251449912198252564556899004325611831203414257425755116609547354567");
+	BigNumber number2(q_str);
+    BigNumber n = number1 * number2;
 	clock_t begin = clock();
-	BigNumber res = number3.MulInverse(number1);
-	//BigNumber res = number1.exponentiate(number3, n);
-	//cout << endl << number3.isPrime() << endl;
+	//BigNumber res = number2.MulInverse(number1);
+	//BigNumber res = number2.exponentiate(number1, n);
+	cout << endl << number1.isPrime() << endl;
 	clock_t end = clock();
     double elapsed_secs = double(end - begin) / (CLOCKS_PER_SEC / 1000);
     cout << elapsed_secs << endl;
-    //cout << endl << (res == test) << endl;   
-	//cout << endl << (n == test1) << endl;   
-    res.print();
-	BigNumber res1 = *(res * number3) % number1;
-	res1.print();
-    /*
-    clock_t begin = clock();
-    for(int i = 0; i < 10; i++)
-    {
-        BigNumber res = number1 / number2;
-    }
-    clock_t end = clock();
-    double elapsed_secs = double(end - begin) / (CLOCKS_PER_SEC / 1000);
-    cout << elapsed_secs << endl;
-    */
-    //p_str = "10000";
-    //q_str = "32154";
-    /*
+    //res.print();
+	*/
+    string p_str, q_str, e_str, operation;
     getline(cin, p_str);
     getline(cin, q_str);
     getline(cin, e_str);
-    */
-   /*
+  
     while(true)
     {
         getline(cin, operation);
-    }*/
+    }
     return 0;
 }
