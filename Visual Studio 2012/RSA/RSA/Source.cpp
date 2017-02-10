@@ -491,7 +491,7 @@ public:
 		{
 			return false; // n is even
 		}
-		for(int i = 2; i < 12; i++) // perform the test 10 times
+		for(int i = 2; i < 7; i++) // perform the test 10 times
 		{
 			BigNumber test(to_string(i));
 			if(test >= n_1)
@@ -528,7 +528,7 @@ public:
 		return true;
 	}
 	
-	BigNumber MulInverse(BigNumber &mod)
+	BigNumber * MulInverse(BigNumber &mod)
 	{
 		BigNumber A2("0");
 		BigNumber A3(mod);
@@ -725,13 +725,11 @@ public:
     void print()
     {
         cout << (*bigNum)[this->getSize()-1];
-        //cout<< (*bigNum)[this->size-1]/1000000 << " " << ((*bigNum)[this->size-1]/1000)%1000 << " " << (*bigNum)[this->size-1]%1000 << " ";
         for(int i = this->getSize()-2; i >= 0; i--)
         {
             cout<< setw(9) << setfill('0') << (*bigNum)[i];
-            //cout<< (*bigNum)[i]/1000000 << " " << ((*bigNum)[i]/1000)%1000 << " " << (*bigNum)[i]%1000 << " ";
         }
-        cout <<endl<<endl;
+        cout << endl;
     }
 };
 
@@ -741,13 +739,23 @@ int main()
 {
     BigNumber::initialize();
 
-    /*
-	string p_str, q_str, e_str, operation;
+    
+	string p_str, q_str, e_str;
     p_str = "12369571528747655798110188786567180759626910465726920556567298659370399748072366507234899432827475865189642714067836207300153035059472237275816384410077871";
     q_str = "2065420353441994803054315079370635087865508423962173447811880044936318158815802774220405304957787464676771309034463560633713497474362222775683960029689473";
-    BigNumber number1(p_str);
-	BigNumber number2(q_str);
-    BigNumber n = number1 * number2;
+	e_str = "65537";
+	BigNumber * p = new BigNumber(p_str);
+	BigNumber * q = new BigNumber(q_str);
+	BigNumber * e = new BigNumber(e_str);
+	BigNumber * n = *p * *q;
+	BigNumber one("1");
+	BigNumber * phi = *(*p - one) * *(*q - one);;
+	BigNumber * d = e->MulInverse(*phi);
+	BigNumber * m = new BigNumber("15645646");
+	BigNumber * c = new BigNumber(m->exponentiate(*d, *n));
+	c->print();
+
+	/*
 	clock_t begin = clock();
 	//BigNumber res = number2.MulInverse(number1);
 	//BigNumber res = number2.exponentiate(number1, n);
@@ -757,14 +765,83 @@ int main()
     cout << elapsed_secs << endl;
     //res.print();
 	*/
-    string p_str, q_str, e_str, operation;
-    getline(cin, p_str);
-    getline(cin, q_str);
-    getline(cin, e_str);
-  
+	/*
+	BigNumber * p, * q, * e, * d, * n, * phi, * m, * c;
+	string s;
     while(true)
     {
-        getline(cin, operation);
+        getline(cin, s);
+		string name = s.substr(0,2); 
+		if(name == "P=")
+		{
+			p = new BigNumber(s.substr(2));
+		}
+		else if(name == "Q=")
+		{
+			q = new BigNumber(s.substr(2));
+		}
+		else if(name == "E=")
+		{
+			e = new BigNumber(s.substr(2));
+		}
+		else
+		{
+			if(s == "IsPPrime")
+			{
+				if(p->isPrime())
+				{
+					cout << "Yes" << endl;
+				}
+				else
+				{
+					cout << "No" << endl;
+				}
+			}
+			else if(s == "IsQPrime")
+			{
+				if(q->isPrime())
+				{
+					cout << "Yes" << endl;
+				}
+				else
+				{
+					cout << "No" << endl;
+				}
+			}
+			else if(s == "PrintN")
+			{
+				n = *p * *q;
+				n->print();
+			}
+			else if(s == "PrintPhi")
+			{
+				BigNumber one("1");
+				phi = *(*p - one) * *(*q - one);
+				phi->print();
+			}
+			else if(s == "PrintD")
+			{
+				d = e->MulInverse(*phi);
+				d->print();
+			}
+			else if(s == "Quit")
+			{
+				break;
+			}
+			else if(s.substr(0, 14) == "EncryptPublic=")
+			{
+				m = new BigNumber(s.substr(14));
+				c = new BigNumber(m->exponentiate(*e, *n));
+				c->print();
+			}
+			else if(s.substr(0, 15) == "EncryptPrivate=")
+			{
+				m = new BigNumber(s.substr(15));
+				c = new BigNumber(m->exponentiate(*d, *n));
+				c->print();
+			}
+		}
     }
+	*/
     return 0;
 }
