@@ -304,7 +304,7 @@ public:
             while(b < *nom)
             {
 				int num_size = b.getSize();
-				if(nom->value(nom->getSize()-1) < b.value(b.getSize()-1))
+				if(*nom->getPart(b.getSize()) < b)
 				{
 					num_size++;
 				}
@@ -332,11 +332,12 @@ public:
                 }
                 nom->shrink();
             }
-			for(int i = results.size()-1; i >= 0; i--)
+			for(int i = results.size()-1; i > 0; i--)
 			{
 				delete results[i];
 				delete factors[i];
 			}
+			delete factors[0];
             sum->shrink();
             return sum;
         }
@@ -371,7 +372,7 @@ public:
             while(b < *nom)
             {
 				int num_size = b.getSize();
-				if(nom->value(nom->getSize()-1) < b.value(b.getSize()-1))
+				if(*nom->getPart(b.getSize()) < b)
 				{
 					num_size++;
 				}
@@ -398,11 +399,12 @@ public:
                 }
                 nom->shrink();
             }
-			for(int i = results.size()-1; i >= 0; i--)
+			for(int i = results.size()-1; i > 0; i--)
 			{
 				delete results[i];
 				delete factors[i];
 			}
+			delete factors[0];
             return nom;
         }
     }
@@ -410,7 +412,7 @@ public:
     BigNumber exponentiate(BigNumber &power, BigNumber &mod)
     {
         stack<int> powers;
-        vector<BigNumber> factors;
+        vector<BigNumber*> factors;
         BigNumber test = power;
         for(int i = 1023; i >= 0; i--)
         {
@@ -420,7 +422,7 @@ public:
                 powers.push(i);
             }
         }
-        BigNumber factor = *this;
+        BigNumber * factor = new BigNumber(this);
         if(powers.top() == 0)
         {
             factors.push_back(factor);
@@ -432,8 +434,8 @@ public:
             {
                 break;
             }
-            factor = factor * factor;
-            factor = factor % mod;
+            factor = *factor * *factor;
+            factor = *factor % mod;
             if(powers.top() == i)
             {
                 factors.push_back(factor);
@@ -443,7 +445,7 @@ public:
         BigNumber * result = new BigNumber("1");
         for(int i = 0; i < factors.size(); i++)
         {
-            result = (*result) * factors[i];
+            result = (*result) * *factors[i];
             result = (*result) % mod;
         }
         return result;
@@ -630,18 +632,17 @@ int main()
     p_str = "12369571528747655798110188786567180759626910465726920556567298659370399748072366507234899432827475865189642714067836207300153035059472237275816384410077871";
     q_str = "2065420353441994803054315079370635087865508423962173447811880044936318158815802774220405304957787464676771309034463560633713497474362222775683960029689473";
     BigNumber number1(p_str);
-	BigNumber number2(q_str);
+	BigNumber number3(q_str);
     //BigNumber number2("593145345351");
-    //BigNumber number2("5");
+    BigNumber number2("5");
     //BigNumber one("1");
-    BigNumber n = number1 * number2;
+    BigNumber n = number1 * number3;
     //n.print();
-
-    //BigNumber test("6184785764373827899055094393283590379813455232863460278283649329685199874036183253617449716413737932594821357033918103650076517529736118637908192205038935");
-
-    //cout << endl << (res == test) << endl;
-
-    BigNumber res = number1.exponentiate(number2, n);
+	BigNumber test1("25548364798832019218170326077010425733930233389897468141147917831084690989884562791601588954296621731652139141347541240725432606132471100644835778517336041031200174441223836394229943651678525471050219216183727749114047330431603023948126844573697946795476319956787513765533596926704755530772983549787878951983");
+    BigNumber test("14189485321177462408318672114557330546247509303317064953027389385275897573822172257132865340641176247566481139072907283946504374015733753097985297565236283248440762546921964722811073666518084045676411531969697963714289397405456950756650291873251449912198252564556899004325611831203414257425755116609547354567");
+	BigNumber res = number1.exponentiate(number3, n);
+    cout << endl << (res == test) << endl;   
+	cout << endl << (n == test1) << endl;   
     res.print();
     /*
     BigNumber n1("2");
