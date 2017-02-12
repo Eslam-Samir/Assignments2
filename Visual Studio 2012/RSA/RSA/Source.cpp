@@ -41,6 +41,11 @@ public:
             (*bigNum)[i] = (*big)[i];
         }
     }
+	BigNumber(uint32_t big)
+    {
+        bigNum = new vector<uint32_t>(1);
+        (*bigNum)[0] = big;
+    }
     BigNumber(string s)
     {
         int size = ceil(s.length()/9.0);
@@ -85,19 +90,20 @@ public:
             }
         }
     }
-    BigNumber(BigNumber *b) {
-        int size = b->getSize();
+    BigNumber(BigNumber &b) {
+        int size = b.getSize();
         bigNum = new vector<uint32_t>(size);
         for(int i = 0; i < size; i++)
         {
-            (*bigNum)[i] = b->value(i);
+            (*bigNum)[i] = b.value(i);
         }
     }
     ~BigNumber()
     {
-		if(bigNum != nullptr && !bigNum->empty())
+		if(bigNum != nullptr)
 		{
-			bigNum->clear();
+			if(!bigNum->empty())
+				bigNum->clear();
 			delete bigNum;
 		}
     }
@@ -108,17 +114,36 @@ public:
             return;
 
         FactorsOfTwo = new map<int, BigNumber*>();
-        BigNumber * initial = new BigNumber("1");
+		BigNumber * initial = new BigNumber("1");
         BigNumber two("2");
         FactorsOfTwo->insert(std::pair<const int, BigNumber*>(0, initial));
         for(int i = 1; i < 1024; i++)
         {
-            FactorsOfTwo->insert(std::pair<const int, BigNumber*>(i, *(FactorsOfTwo->at(i-1)) * two));
+			BigNumber * factor = new BigNumber(*(FactorsOfTwo->at(i-1)) * two);
+            FactorsOfTwo->insert(std::pair<const int, BigNumber*>(i, factor));
         }
+    }
+
+	static void clear()
+    {
+        if(FactorsOfTwo == nullptr)
+            return;
+
+        map<int, BigNumber*>::iterator itr = FactorsOfTwo->begin();
+		while(itr != FactorsOfTwo->end())
+		{
+			delete itr->second;
+			itr++;
+		}
+		FactorsOfTwo->clear();
+		delete FactorsOfTwo;
     }
 
     void operator=(BigNumber b)
     {
+		if (bigNum != nullptr)
+			delete bigNum;
+
         int size = b.getSize();
         bigNum = new vector<uint32_t>(size);
         for(int i = 0; i < size; i++)
@@ -127,7 +152,7 @@ public:
         }
     }
 
-    BigNumber * operator+(BigNumber& b)
+    BigNumber operator+(BigNumber& b)
     {
         this->shrink();
         b.shrink();
@@ -145,19 +170,19 @@ public:
             num1 = this;
             num2 = &b;
         }
-        BigNumber * result = new BigNumber(size);
+        BigNumber result(size);
         uint32_t carry = 0;
         for(int i = 0; i < size; i++)
         {
-            result->setValue(carry + num1->value(i), i);
+            result.setValue(carry + num1->value(i), i);
             if(num2->getSize() > i)
             {
-                result->setValue(result->value(i)+num2->value(i), i);
+                result.setValue(result.value(i)+num2->value(i), i);
             }
-            if(result->value(i) > 999999999)
+            if(result.value(i) > 999999999)
             {
                 carry = 1;
-                result->setValue(result->value(i)-1000000000, i);
+                result.setValue(result.value(i)-1000000000, i);
             }
             else
             {
@@ -166,12 +191,13 @@ public:
         }
         if(carry == 1)
         {
-            result->expand(size+1);
-            result->setValue(1, size);
+            result.expand(size+1);
+            result.setValue(1, size);
         }
         return result;
     }
-    BigNumber * operator-(BigNumber& b)
+
+    BigNumber operator-(BigNumber& b)
     {
         this->shrink();
         b.shrink();
@@ -199,41 +225,41 @@ public:
             num1 = &b;
             num2 = this;
         }
-        BigNumber * result = new BigNumber(num1);
-        for(int i = 0; i < result->getSize(); i++)
+        BigNumber result(*num1);
+        for(int i = 0; i < result.getSize(); i++)
         {
             if(num2->getSize() <= i)
             {
                 break;
             }
-            if(result->value(i) < num2->value(i))
+            if(result.value(i) < num2->value(i))
             {
-                result->setValue(result->value(i)+1000000000, i);
-                for(int j = i+1; j < result->getSize(); j++)
+                result.setValue(result.value(i)+1000000000, i);
+                for(int j = i+1; j < result.getSize(); j++)
                 {
-                    if(result->value(j) > 0)
+                    if(result.value(j) > 0)
                     {
-                        result->setValue(result->value(j)-1, j);
+                        result.setValue(result.value(j)-1, j);
                         break;
                     }
                     else
                     {
-                        result->setValue(result->value(j)+999999999, j);
+                        result.setValue(result.value(j)+999999999, j);
                     }
                 }
             }
-            result->setValue(result->value(i)-num2->value(i), i);
+            result.setValue(result.value(i)-num2->value(i), i);
         }
-        result->shrink();
+        result.shrink();
         return result;
     }
 
-    BigNumber * operator*(BigNumber& b)
+    BigNumber operator*(BigNumber& b)
     {
         this->shrink();
         b.shrink();
         int size = b.getSize() + this->getSize();
-        BigNumber * result = new BigNumber(size);
+        BigNumber result(size);
         uint64_t mul;
         uint32_t carry = 0;
         for(int i = 0; i < size; i++)
@@ -250,33 +276,33 @@ public:
                 }
                 mul = (uint64_t) this->value(j) * b.value(i-j);
                 carry = mul / 1000000000;
-                result->setValue(result->value(i)+(mul % 1000000000), i);
-                result->setValue(result->value(i+1) + carry, i+1);
-                if(result->value(i+1) > 999999999)
+                result.setValue(result.value(i)+(mul % 1000000000), i);
+                result.setValue(result.value(i+1) + carry, i+1);
+                if(result.value(i+1) > 999999999)
                 {
-                    result->setValue(result->value(i+2)+1, i+2);
-                    result->setValue(result->value(i+1)-1000000000, i+1);
+                    result.setValue(result.value(i+2)+1, i+2);
+                    result.setValue(result.value(i+1)-1000000000, i+1);
                 }
-                if(result->value(i) > 999999999)
+                if(result.value(i) > 999999999)
                 {
-                    result->setValue(result->value(i+1)+1, i+1);
-                    result->setValue(result->value(i)-1000000000, i);
+                    result.setValue(result.value(i+1)+1, i+1);
+                    result.setValue(result.value(i)-1000000000, i);
                 }
             }
         }
-        result->shrink();
+        result.shrink();
         return result;
     }
-
-    BigNumber * operator/(BigNumber& b)
-    {
-        this->shrink();
-        b.shrink();
-        BigNumber * nom = new BigNumber(this);
-        if(this->getSize() < b.getSize())
-        {
-            return 0;
-        }
+	/*
+	BigNumber * operator/(BigNumber& b)
+	{
+		this->shrink();
+		b.shrink();
+		BigNumber * nom = new BigNumber(this);
+		if(*nom < b)
+		{
+			return 0;
+		}
 		else if(b.getSize() == 1 && b.value(0) == 2) // division by 2
 		{
 			uint64_t num;
@@ -285,69 +311,177 @@ public:
 			{
 				num = (uint64_t) carry*1000000000 + nom->value(i);
 				carry = num % 2;
-				nom->setValue(num/2, i);
+				nom->setValue(num / 2, i);
 			}
 			nom->shrink();
 			return nom;
 		}
+		else
+		{
+			BigNumber * sum = new BigNumber("0");
+			do
+			{
+				uint64_t num = 0;
+				if(nom->value(nom->getSize()-1) > b.value(b.getSize()-1))
+				{
+					num = nom->value(nom->getSize()-1);
+				}
+				else
+				{
+					num = (uint64_t) nom->value(nom->getSize()-1)*1000000000 + nom->value(nom->getSize()-2);
+				}
+				uint32_t d = num / b.value(b.getSize()-1);
+				BigNumber * div = new BigNumber(d);
+				BigNumber * result = *div * b;
+				int size = nom->getSize()-result->getSize();
+				uint32_t high = d;
+				uint32_t low = d/2;
+				while(high > low)
+				{
+					uint32_t mid = (low+high)/2;
+					uint32_t mid_1 = mid+1;
+					cout << endl << mid << endl;
+					div = new BigNumber(mid);
+					BigNumber div_1(mid_1);
+					result = *div * b;
+					BigNumber * result_1 = div_1 * b;
+					if(*result > *nom->getPart(result->getSize()))
+					{
+						high = mid;
+					}
+					else if(*result <= *nom->getPart(result->getSize()) && *result_1 > *nom->getPart(result_1->getSize()))
+					{
+						div = div->append_zeros(size);
+						result = result->append_zeros(size);
+                        break;
+					}
+					else if(*result_1 <= *nom->getPart(result_1->getSize()))
+					{
+						div = div_1.append_zeros(size);
+						result = result_1->append_zeros(size);
+                        break;
+					}
+					else
+					{
+						low = mid;
+					}
+				}
+				nom = *nom - *result;
+				sum = *sum + *div;
+				sum->print();
+				nom->print();
+				nom->shrink();
+			} while(*nom > b);
+			return sum;
+		}
+	}
+	*/
+	
+    BigNumber operator/(BigNumber& b)
+    {
+        this->shrink();
+        b.shrink();
+        BigNumber nom(*this);
+        if(this->getSize() < b.getSize())
+        {
+            return 0;
+        }
+		else if(b.getSize() == 1 && b.value(0) == 2) // division by 2
+		{
+			uint64_t num;
+			uint32_t carry = 0;
+			for(int i = nom.getSize()-1; i >= 0; i--)
+			{
+				num = (uint64_t) carry*1000000000 + nom.value(i);
+				carry = num % 2;
+				nom.setValue(num/2, i);
+			}
+			nom.shrink();
+			return nom;
+		}
         else
         {
-            BigNumber * factor = new BigNumber("1");
+			BigNumber * factor = new BigNumber("1");
             BigNumber two("2");
-            BigNumber * sum = new BigNumber("0");
-            BigNumber * result = new BigNumber(b);
+            BigNumber sum("0");
+			BigNumber * result = new BigNumber(b);
             vector<BigNumber*> results;
             vector<BigNumber*> factors;
             factors.push_back(factor);
             results.push_back(result);
 
-            while(b < *nom)
+            while(b < nom)
             {
 				int num_size = b.getSize();
-				if(*nom->getPart(b.getSize()) < b)
+				if(nom.getPart(b.getSize()) < b)
 				{
 					num_size++;
 				}
 				
-				BigNumber num = nom->getPart(num_size);
+				BigNumber num = nom.getPart(num_size);
 				while(*result < num)
 				{
-					result = *result * two;
-					factor = *factor * two;
+					result = new BigNumber(*(result) * two);
+					factor = new BigNumber(*(factor) * two);
 					factors.push_back(factor);
 					results.push_back(result);
-				}
+				}/*
 				int size = results.size();
                 for(int i = size-1; i >= 0; i--)
                 {
-                    if(*results[i] <= num)
+                    if(*results[i] <= *num)
                     {
                         int diff_size = nom->getSize() - num_size;
-                        BigNumber f = factors[i]->append_zeros(diff_size);
-                        BigNumber r = results[i]->append_zeros(diff_size);
-                        sum = *sum + f;
-                        nom = *nom - r;
+                        BigNumber * f = factors[i]->append_zeros(diff_size);
+                        BigNumber * r = results[i]->append_zeros(diff_size);
+                        sum = *sum + *f;
+                        nom = *nom - *r;
+                        delete f;
+                        delete r;
                         break;
                     }
-                }
-                nom->shrink();
+                }*/
+                int low = 0;
+				int high = results.size()-1;
+				while(low < high)
+				{
+					int mid = (low+high)/2;
+					if(*results[mid] > num)
+					{
+						high = mid;
+					}
+					else if(*results[mid] <= num && *results[mid+1] > num)
+					{
+						int diff_size = nom.getSize() - num_size;
+                        BigNumber f = factors[mid]->append_zeros(diff_size);
+                        BigNumber r = results[mid]->append_zeros(diff_size);
+                        sum = sum + f;
+                        nom = nom - r;
+                        break;
+					}
+					else
+					{
+						low = mid;
+					}
+				}
+                nom.shrink();
             }
-			for(int i = results.size()-1; i > 0; i--)
+			for(int i = results.size()-1; i >= 0; i--)
 			{
 				delete results[i];
 				delete factors[i];
 			}
-			delete factors[0];
-            sum->shrink();
+
+            sum.shrink();
             return sum;
         }
     }
-
-    BigNumber * operator%(BigNumber& b)
+	
+    BigNumber operator%(BigNumber& b)
     {
         this->shrink();
         b.shrink();
-        BigNumber * nom = new BigNumber(this);
+        BigNumber nom(*this);
         if(this->getSize() < b.getSize())
         {
             return nom;
@@ -355,48 +489,43 @@ public:
 		else if(b.getSize() == 1 && b.value(0) == 2) // mod 2
 		{
 			vector<uint32_t> rem;
-			rem.push_back(nom->value(0) % 2);
-			BigNumber * result = new BigNumber(&rem, 1);
+			rem.push_back(nom.value(0) % 2);
+			BigNumber result(&rem, 1);
 			return result;
 		}
         else
         {
-            BigNumber * factor = new BigNumber("1");
             BigNumber two("2");
-            BigNumber * result = new BigNumber(b);
+			BigNumber * result = new BigNumber(b);
             vector<BigNumber*> results;
-            vector<BigNumber*> factors;
-            factors.push_back(factor);
             results.push_back(result);
 
-            while(b < *nom)
+            while(b < nom)
             {
 				int num_size = b.getSize();
-				if(*nom->getPart(b.getSize()) < b)
+				if(nom.getPart(b.getSize()) < b)
 				{
 					num_size++;
 				}
 				
-				BigNumber num = nom->getPart(num_size);
+				BigNumber num = nom.getPart(num_size);
 				while(*result < num)
 				{
-					result = *result * two;
-					factor = *factor * two;
-					factors.push_back(factor);
+					result = new BigNumber(*result * two);
 					results.push_back(result);
 				}
-				int size = results.size();
-                for(int i = size-1; i >= 0; i--)
+				/*
+				int size = results.size();    
+				for(int i = size-1; i >= 0; i--)
                 {
                     if(*results[i] <= num)
                     {
                         int diff_size = nom->getSize() - num_size;
-                        BigNumber f = factors[i]->append_zeros(diff_size);
                         BigNumber r = results[i]->append_zeros(diff_size);
                         nom = *nom - r;
                         break;
                     }
-                }/*
+                }*/
 				int low = 0;
 				int high = results.size()-1;
 				while(low < high)
@@ -408,25 +537,22 @@ public:
 					}
 					else if(*results[mid] <= num && *results[mid+1] > num)
 					{
-						int diff_size = nom->getSize() - num_size;
-                        BigNumber f = factors[mid]->append_zeros(diff_size);
+						int diff_size = nom.getSize() - num_size;
                         BigNumber r = results[mid]->append_zeros(diff_size);
-                        nom = *nom - r;
+                        nom = nom - r;
                         break;
 					}
 					else
 					{
 						low = mid;
 					}
-				}*/
-                nom->shrink();
+				}
+                nom.shrink();
             }
-			for(int i = results.size()-1; i > 0; i--)
+			for(int i = results.size()-1; i >= 0; i--)
 			{
 				delete results[i];
-				delete factors[i];
 			}
-			delete factors[0];
             return nom;
         }
     }
@@ -434,8 +560,8 @@ public:
     BigNumber exponentiate(BigNumber &power, BigNumber &mod)
     {
         stack<int> powers;
-        vector<BigNumber*> factors;
         BigNumber test = power;
+
         for(int i = 1023; i >= 0; i--)
         {
             if(test >= *(FactorsOfTwo->at(i)))
@@ -444,10 +570,12 @@ public:
                 powers.push(i);
             }
         }
-        BigNumber * factor = new BigNumber(this);
+        BigNumber result("1");
+        BigNumber factor(*this);
         if(powers.top() == 0)
         {
-            factors.push_back(factor);
+            result = result * factor;
+            result = result % mod;
             powers.pop();
         }
         for(int i = 1; i < 1023; i++)
@@ -456,33 +584,29 @@ public:
             {
                 break;
             }
-            factor = *factor * *factor;
-            factor = *factor % mod;
+            factor = factor * factor;
+            factor = factor % mod;
             if(powers.top() == i)
             {
-                factors.push_back(factor);
+                result = result * factor;
+				result = result % mod;
                 powers.pop();
             }
         }
-        BigNumber * result = new BigNumber("1");
-        for(int i = 0; i < factors.size(); i++)
-        {
-            result = (*result) * *factors[i];
-            result = (*result) % mod;
-        }
+
         return result;
     }
 
 	bool isPrime()
 	{
-		BigNumber n(this);
+		BigNumber n(*this);
 		BigNumber one("1");
 		BigNumber two("2");
 		BigNumber n_1 = n - one;
 		BigNumber q = n_1;
 		BigNumber k("0");
 
-		while(*(q % two) != one)
+		while(q % two != one)
 		{
 			q = q / two;
 			k = k + one;
@@ -491,7 +615,7 @@ public:
 		{
 			return false; // n is even
 		}
-		for(int i = 2; i < 7; i++) // perform the test 10 times
+		for(int i = 2; i < 5; i++) // perform the test 3 times
 		{
 			BigNumber test(to_string(i));
 			if(test >= n_1)
@@ -528,23 +652,24 @@ public:
 		return true;
 	}
 	
-	BigNumber * MulInverse(BigNumber &mod)
+	BigNumber MulInverse(BigNumber &mod)
 	{
 		BigNumber A2("0");
 		BigNumber A3(mod);
-		BigNumber * B2 = new BigNumber("1");
+		BigNumber B2("1");
 		BigNumber B3 = *this % mod;
 		
 		BigNumber one("1");
 		BigNumber zero("0");
-		BigNumber * Q, * temp2, * temp3;
 		bool A2_negative = false;
 		while(B3 != one && B3 != zero)
 		{
-			Q = A3 / B3;
+			BigNumber Q = A3 / B3;
 			A2_negative = !A2_negative;
-			temp2 = A2 + *(*Q * *B2);
-			temp3 = A3 - *(*Q * B3);
+			BigNumber temp2 = Q * B2;
+			temp2 = A2 + temp2;
+			BigNumber temp3 = Q * B3;
+			temp3 = A3 - temp3; 
 			A2 = B2;
 			A3 = B3;
 			B2 = temp2;
@@ -552,9 +677,8 @@ public:
 		}
 		if(A2_negative)
 		{
-			B2 = mod - *B2;
+			B2 = mod - B2;
 		}
-		delete temp3, Q;
 		return B2;
 	}
 	
@@ -657,7 +781,7 @@ public:
         return b <= *this;
     }
 
-    BigNumber * append_zeros(int numberOfZeros)
+    BigNumber append_zeros(int numberOfZeros)
     {
         vector<uint32_t> * tmp = new vector<uint32_t>(numberOfZeros+this->getSize());
         for(int i = 0; i < numberOfZeros; i++)
@@ -668,15 +792,16 @@ public:
         {
             (*tmp)[i] = this->value(i-numberOfZeros);
         }
-		BigNumber * result = new BigNumber(tmp, numberOfZeros+this->getSize());
+		BigNumber result(tmp, numberOfZeros+this->getSize());
+		delete tmp;
         return result;
     }
 
-    BigNumber * getPart(int size)
+    BigNumber getPart(int size)
     {
         if(size >= this->getSize())
         {
-			BigNumber * result = new BigNumber(*this);
+			BigNumber result(*this);
             return result;
         }
         else
@@ -686,7 +811,8 @@ public:
             {
                 (*res)[i-(this->getSize()-size)] = this->value(i);
             }
-            BigNumber * result = new BigNumber(res, size);
+            BigNumber result(res, size);
+			delete res;
             return result;
         }
     }
@@ -738,22 +864,28 @@ map<int, BigNumber*> * BigNumber::FactorsOfTwo;
 int main()
 {
     BigNumber::initialize();
-
-    
+	/*
 	string p_str, q_str, e_str;
     p_str = "12369571528747655798110188786567180759626910465726920556567298659370399748072366507234899432827475865189642714067836207300153035059472237275816384410077871";
     q_str = "2065420353441994803054315079370635087865508423962173447811880044936318158815802774220405304957787464676771309034463560633713497474362222775683960029689473";
 	e_str = "65537";
-	BigNumber * p = new BigNumber(p_str);
-	BigNumber * q = new BigNumber(q_str);
-	BigNumber * e = new BigNumber(e_str);
-	BigNumber * n = *p * *q;
+	BigNumber p(p_str);
+	BigNumber q(q_str);
+	BigNumber e(e_str);
+
+	BigNumber n = p * q;
+	n.print();
 	BigNumber one("1");
-	BigNumber * phi = *(*p - one) * *(*q - one);;
-	BigNumber * d = e->MulInverse(*phi);
-	BigNumber * m = new BigNumber("15645646");
-	BigNumber * c = new BigNumber(m->exponentiate(*d, *n));
-	c->print();
+	BigNumber phi = (p - one) * (q - one);
+	phi.print();
+	BigNumber d = e.MulInverse(phi);
+	d.print();
+	BigNumber m("15645646");
+	BigNumber c = m.exponentiate(e, n);
+	c.print();
+	cout << "P is prime: " << p.isPrime() << endl;
+	cout << "Q is prime: " << q.isPrime() << endl;
+	*/
 
 	/*
 	clock_t begin = clock();
@@ -765,8 +897,8 @@ int main()
     cout << elapsed_secs << endl;
     //res.print();
 	*/
-	/*
-	BigNumber * p, * q, * e, * d, * n, * phi, * m, * c;
+	
+	BigNumber p, q, e, d, n, phi, m, c;
 	string s;
     while(true)
     {
@@ -774,21 +906,21 @@ int main()
 		string name = s.substr(0,2); 
 		if(name == "P=")
 		{
-			p = new BigNumber(s.substr(2));
+			p = BigNumber(s.substr(2));
 		}
 		else if(name == "Q=")
 		{
-			q = new BigNumber(s.substr(2));
+			q = BigNumber(s.substr(2));
 		}
 		else if(name == "E=")
 		{
-			e = new BigNumber(s.substr(2));
+			e = BigNumber(s.substr(2));
 		}
 		else
 		{
 			if(s == "IsPPrime")
 			{
-				if(p->isPrime())
+				if(p.isPrime())
 				{
 					cout << "Yes" << endl;
 				}
@@ -799,7 +931,7 @@ int main()
 			}
 			else if(s == "IsQPrime")
 			{
-				if(q->isPrime())
+				if(q.isPrime())
 				{
 					cout << "Yes" << endl;
 				}
@@ -810,19 +942,19 @@ int main()
 			}
 			else if(s == "PrintN")
 			{
-				n = *p * *q;
-				n->print();
+				n = p * q;
+				n.print();
 			}
 			else if(s == "PrintPhi")
 			{
 				BigNumber one("1");
-				phi = *(*p - one) * *(*q - one);
-				phi->print();
+				phi = (p - one) * (q - one);
+				phi.print();
 			}
 			else if(s == "PrintD")
 			{
-				d = e->MulInverse(*phi);
-				d->print();
+				d = e.MulInverse(phi);
+				d.print();
 			}
 			else if(s == "Quit")
 			{
@@ -830,18 +962,18 @@ int main()
 			}
 			else if(s.substr(0, 14) == "EncryptPublic=")
 			{
-				m = new BigNumber(s.substr(14));
-				c = new BigNumber(m->exponentiate(*e, *n));
-				c->print();
+				m = BigNumber(s.substr(14));
+				c = m.exponentiate(e, n);
+				c.print();
 			}
 			else if(s.substr(0, 15) == "EncryptPrivate=")
 			{
-				m = new BigNumber(s.substr(15));
-				c = new BigNumber(m->exponentiate(*d, *n));
-				c->print();
+				m = BigNumber(s.substr(15));
+				c = m.exponentiate(d, n);
+				c.print();
 			}
 		}
     }
-	*/
+	BigNumber::clear();
     return 0;
 }
