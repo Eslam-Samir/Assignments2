@@ -90,7 +90,7 @@ public:
             }
         }
     }
-    BigNumber(BigNumber &b) {
+    BigNumber(const BigNumber &b) {
         int size = b.getSize();
         bigNum = new vector<uint32_t>(size);
         for(int i = 0; i < size; i++)
@@ -293,89 +293,6 @@ public:
         result.shrink();
         return result;
     }
-	/*
-	BigNumber * operator/(BigNumber& b)
-	{
-		this->shrink();
-		b.shrink();
-		BigNumber * nom = new BigNumber(this);
-		if(*nom < b)
-		{
-			return 0;
-		}
-		else if(b.getSize() == 1 && b.value(0) == 2) // division by 2
-		{
-			uint64_t num;
-			uint32_t carry = 0;
-			for(int i = nom->getSize()-1; i >= 0; i--)
-			{
-				num = (uint64_t) carry*1000000000 + nom->value(i);
-				carry = num % 2;
-				nom->setValue(num / 2, i);
-			}
-			nom->shrink();
-			return nom;
-		}
-		else
-		{
-			BigNumber * sum = new BigNumber("0");
-			do
-			{
-				uint64_t num = 0;
-				if(nom->value(nom->getSize()-1) > b.value(b.getSize()-1))
-				{
-					num = nom->value(nom->getSize()-1);
-				}
-				else
-				{
-					num = (uint64_t) nom->value(nom->getSize()-1)*1000000000 + nom->value(nom->getSize()-2);
-				}
-				uint32_t d = num / b.value(b.getSize()-1);
-				BigNumber * div = new BigNumber(d);
-				BigNumber * result = *div * b;
-				int size = nom->getSize()-result->getSize();
-				uint32_t high = d;
-				uint32_t low = d/2;
-				while(high > low)
-				{
-					uint32_t mid = (low+high)/2;
-					uint32_t mid_1 = mid+1;
-					cout << endl << mid << endl;
-					div = new BigNumber(mid);
-					BigNumber div_1(mid_1);
-					result = *div * b;
-					BigNumber * result_1 = div_1 * b;
-					if(*result > *nom->getPart(result->getSize()))
-					{
-						high = mid;
-					}
-					else if(*result <= *nom->getPart(result->getSize()) && *result_1 > *nom->getPart(result_1->getSize()))
-					{
-						div = div->append_zeros(size);
-						result = result->append_zeros(size);
-                        break;
-					}
-					else if(*result_1 <= *nom->getPart(result_1->getSize()))
-					{
-						div = div_1.append_zeros(size);
-						result = result_1->append_zeros(size);
-                        break;
-					}
-					else
-					{
-						low = mid;
-					}
-				}
-				nom = *nom - *result;
-				sum = *sum + *div;
-				sum->print();
-				nom->print();
-				nom->shrink();
-			} while(*nom > b);
-			return sum;
-		}
-	}
-	*/
 	
     BigNumber operator/(BigNumber& b)
     {
@@ -425,22 +342,7 @@ public:
 					factor = new BigNumber(*(factor) * two);
 					factors.push_back(factor);
 					results.push_back(result);
-				}/*
-				int size = results.size();
-                for(int i = size-1; i >= 0; i--)
-                {
-                    if(*results[i] <= *num)
-                    {
-                        int diff_size = nom->getSize() - num_size;
-                        BigNumber * f = factors[i]->append_zeros(diff_size);
-                        BigNumber * r = results[i]->append_zeros(diff_size);
-                        sum = *sum + *f;
-                        nom = *nom - *r;
-                        delete f;
-                        delete r;
-                        break;
-                    }
-                }*/
+				}
                 int low = 0;
 				int high = results.size()-1;
 				while(low < high)
@@ -514,18 +416,6 @@ public:
 					result = new BigNumber(*result * two);
 					results.push_back(result);
 				}
-				/*
-				int size = results.size();    
-				for(int i = size-1; i >= 0; i--)
-                {
-                    if(*results[i] <= num)
-                    {
-                        int diff_size = nom->getSize() - num_size;
-                        BigNumber r = results[i]->append_zeros(diff_size);
-                        nom = *nom - r;
-                        break;
-                    }
-                }*/
 				int low = 0;
 				int high = results.size()-1;
 				while(low < high)
@@ -593,7 +483,6 @@ public:
                 powers.pop();
             }
         }
-
         return result;
     }
 
@@ -836,11 +725,11 @@ public:
         }
     }
 
-    int getSize()
+    int getSize() const
     {
         return bigNum->size();
     }
-    uint32_t value(int i)
+    uint32_t value(int i) const
     {
         return (*bigNum)[i];
     }
@@ -848,7 +737,7 @@ public:
     {
         (*bigNum)[i] = v;
     }
-    void print()
+    void print() const
     {
         cout << (*bigNum)[this->getSize()-1];
         for(int i = this->getSize()-2; i >= 0; i--)
@@ -898,7 +787,7 @@ int main()
     //res.print();
 	*/
 	
-	BigNumber p, q, e, d, n, phi, m, c;
+	BigNumber p, q, e, d, n, phi;
 	string s;
     while(true)
     {
@@ -948,7 +837,8 @@ int main()
 			else if(s == "PrintPhi")
 			{
 				BigNumber one("1");
-				phi = (p - one) * (q - one);
+				BigNumber p_1(p - one), q_1(q - one);
+				phi = p_1 * q_1;
 				phi.print();
 			}
 			else if(s == "PrintD")
@@ -962,14 +852,14 @@ int main()
 			}
 			else if(s.substr(0, 14) == "EncryptPublic=")
 			{
-				m = BigNumber(s.substr(14));
-				c = m.exponentiate(e, n);
+				BigNumber m(s.substr(14));
+				BigNumber c = m.exponentiate(e, n);
 				c.print();
 			}
 			else if(s.substr(0, 15) == "EncryptPrivate=")
 			{
-				m = BigNumber(s.substr(15));
-				c = m.exponentiate(d, n);
+				BigNumber m(s.substr(15));
+				BigNumber c = m.exponentiate(d, n);
 				c.print();
 			}
 		}
