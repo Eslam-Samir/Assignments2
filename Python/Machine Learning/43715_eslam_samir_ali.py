@@ -2,16 +2,24 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
-# ------------------------------- MAP Methods --------------------------------- #
+# ----------------------- Mahalanobis Distance Method ------------------------- #
 
-def MAP_Discriminant(x, mu, covariance, probability):
+def Mahalanobis_Distance(x, mu, covariance):
     x_mu = np.subtract(x, mu)                       # x - mu
     x_mu_t = np.transpose(x_mu)                     # (x - mu)t
     covariance_inverse = np.linalg.inv(covariance)  # covariance ^ -1
-    d = mu.shape[0]                                 # num of dimensions
+    distance = np.dot(x_mu_t, np.dot(covariance_inverse, x_mu))
+    return distance
+
+
+# ------------------------------- MAP Methods --------------------------------- #
+
+def MAP_Discriminant(x, mu, covariance, probability):
+    distance = Mahalanobis_Distance(x, mu, covariance)
+    d = float(mu.shape[0])                                 # num of dimensions
     det = np.linalg.det(covariance)                 # | covariance |
     # g(x):
-    disc = -0.5 * np.dot(x_mu_t, np.dot(covariance_inverse, x_mu)) - (d / 2) * np.log(np.pi / 2) - 0.5 * np.log(
+    disc = -0.5 * distance - (d / 2.0) * np.log(np.pi / 2.0) - 0.5 * np.log(
         det) + np.log(probability)
     return disc
 
@@ -20,29 +28,82 @@ def MAP_Classifier(test, mu, cov, prior):
     disc = [MAP_Discriminant(test, mu[0], cov[0], prior[0]),
             MAP_Discriminant(test, mu[1], cov[1], prior[1]),
             MAP_Discriminant(test, mu[2], cov[2], prior[2])]
-
     return disc.index(max(disc)) + 1
 
 
-# ----------------------- Mahalanobis Distance Method ------------------------- #
+def MAP_Plot(x1, x2, x3, p, mu, cov, prior):
+    fig = plt.figure()
+    h = 0.2
+    x_min = [x1[0, :].min(), x2[0, :].min(), x3[0, :].min()]
+    x_max = [x1[0, :].max(), x2[0, :].max(), x3[0, :].max()]
+    y_min = [x1[1, :].min(), x2[1, :].min(), x3[1, :].min()]
+    y_max = [x1[1, :].max(), x2[1, :].max(), x3[1, :].max()]
+    z_min = [x1[2, :].min(), x2[2, :].min(), x3[2, :].min()]
+    z_max = [x1[2, :].max(), x2[2, :].max(), x3[2, :].max()]
+    xx1, yy1 = np.meshgrid(np.arange(min(x_min) - 1, max(x_max) + 1, h),
+                         np.arange(min(y_min) - 1, max(y_max) + 1, h))
+    xx2, zz1 = np.meshgrid(np.arange(min(x_min) - 1, max(x_max) + 1, h),
+                         np.arange(min(z_min) - 1, max(z_max) + 1, h))
+    yy2, zz2 = np.meshgrid(np.arange(min(y_min) - 1, max(y_max) + 1, h),
+                         np.arange(min(z_min) - 1, max(z_max) + 1, h))
+    xx = [xx1, xx2, np.ones((yy2.shape))]
+    yy = [yy1, np.ones((xx2.shape)), yy2]
+    zz = [np.ones((xx1.shape)), zz1, zz2]
+    xlabels = ['X1', 'X1', 'X2']
+    ylabels = ['X2', 'X3', 'X3']
+    dim = [[0, 1], [0, 2], [1, 2]]
+    for i in range(3):
+        plt.subplot(2, 2, i + 1)
+        plt.subplots_adjust(wspace=0.4, hspace=0.4)
 
-def Mahalanobis_Distance(x, mu, covariance):
-    x_mu = np.subtract(x, mu)
-    x_mu_t = np.transpose(x_mu)
-    covariance_inverse = np.linalg.inv(covariance)
-    distance = np.dot(x_mu_t, np.dot(covariance_inverse, x_mu))
-    return distance
+        Z = np.zeros((xx[i].shape[0], xx[i].shape[1]))
+        for j in range(xx[i].shape[0]):
+            for k in range(xx[i].shape[1]):
+                point = np.array([[xx[i][j, k]], [yy[i][j,k]], [zz[i][j, k]]])
+                Z[j, k] = MAP_Classifier(point, mu, cov, prior)
+        if i == 0:
+            plt.contourf(xx[i], yy[i], Z, levels=[0.75, 1.25, 1.75, 2.25, 2.75, 3.25], colors=['b', 'w', 'g', 'w', 'r'],
+                        zorder=-1)
+            cbar = plt.colorbar(ticks=np.arange(1, 4))
+            cbar.set_label("class #")
+        elif i == 1:
+            plt.contourf(xx[i], zz[i], Z, levels=[0.75, 1.25, 1.75, 2.25, 2.75, 3.25], colors=['b', 'w', 'g', 'w', 'r'],
+                         zorder=-1)
+            cbar = plt.colorbar(ticks=np.arange(1, 4))
+            cbar.set_label("class #")
+        elif i == 2:
+            plt.contourf(yy[i], zz[i], Z, levels=[0.75, 1.25, 1.75, 2.25, 2.75, 3.25], colors=['b', 'w', 'g', 'w', 'r'],
+                         zorder=-1)
+            cbar = plt.colorbar(ticks=np.arange(1, 4))
+            cbar.set_label("class #")
+
+        # train data
+        plt.scatter(x1[dim[i][0], :], x1[dim[i][1], :], zorder=1, c='b', marker='o', label='Class 1')
+        plt.scatter(x2[dim[i][0], :], x2[dim[i][1], :], zorder=1, c='g', marker='D', label='Class 2')
+        plt.scatter(x3[dim[i][0], :], x3[dim[i][1], :], zorder=1, c='r', marker='^', label='Class 3')
+        # test data
+        plt.scatter(p[0][dim[i][0]], p[0][dim[i][1]], zorder=1, c='black', marker='x', label='Test Data')
+        plt.scatter(p[1][dim[i][0]], p[1][dim[i][1]], zorder=1, c='black', marker='x')
+        plt.scatter(p[2][dim[i][0]], p[2][dim[i][1]], zorder=1, c='black', marker='x')
+        plt.scatter(p[3][dim[i][0]], p[3][dim[i][1]], zorder=1, c='black', marker='x')
+
+        # labels
+        plt.xlabel(xlabels[i], fontsize=16)
+        plt.ylabel(ylabels[i], fontsize=16)
+        plt.legend(bbox_to_anchor=(-0.20, 1.1), loc='upper left', ncol=1, prop={'size': 8})
+        plt.xticks(np.arange(-10, 10, 2))
+        plt.yticks(np.arange(-10, 10, 2))
+    fig.suptitle('MAP Decision Boundary', fontsize=18)
+
 
 # ------------------------------- ML Methods --------------------------------- #
 
 def ML_Discriminant(x, mu, covariance):
-    x_mu = np.subtract(x, mu)                       # x - mu
-    x_mu_t = np.transpose(x_mu)                     # (x - mu)t
-    covariance_inverse = np.linalg.inv(covariance)  # covariance ^ -1
-    d = mu.shape[0]                                 # num of dimensions
+    distance = Mahalanobis_Distance(x, mu, covariance)
+    d = float(mu.shape[0])                                 # num of dimensions
     det = np.linalg.det(covariance)                 # | covariance |
     # g(x):
-    disc = -0.5 * np.dot(x_mu_t, np.dot(covariance_inverse, x_mu)) - (d / 2) * np.log(np.pi / 2) - 0.5 * np.log(det)
+    disc = -0.5 * distance - (d / 2.0) * np.log(np.pi / 2.0) - 0.5 * np.log(det)
     return disc
 
 
@@ -50,8 +111,72 @@ def ML_Classifier(test, mu, cov):
     disc = [ML_Discriminant(test, mu[0], cov[0]),
             ML_Discriminant(test, mu[1], cov[1]),
             ML_Discriminant(test, mu[2], cov[2])]
-
     return disc.index(max(disc)) + 1
+
+
+def ML_Plot(x1, x2, x3, p, mu, cov):
+    fig = plt.figure()
+    h = 0.2
+    x_min = [x1[0, :].min(), x2[0, :].min(), x3[0, :].min()]
+    x_max = [x1[0, :].max(), x2[0, :].max(), x3[0, :].max()]
+    y_min = [x1[1, :].min(), x2[1, :].min(), x3[1, :].min()]
+    y_max = [x1[1, :].max(), x2[1, :].max(), x3[1, :].max()]
+    z_min = [x1[2, :].min(), x2[2, :].min(), x3[2, :].min()]
+    z_max = [x1[2, :].max(), x2[2, :].max(), x3[2, :].max()]
+    xx1, yy1 = np.meshgrid(np.arange(min(x_min) - 1, max(x_max) + 1, h),
+                           np.arange(min(y_min) - 1, max(y_max) + 1, h))
+    xx2, zz1 = np.meshgrid(np.arange(min(x_min) - 1, max(x_max) + 1, h),
+                           np.arange(min(z_min) - 1, max(z_max) + 1, h))
+    yy2, zz2 = np.meshgrid(np.arange(min(y_min) - 1, max(y_max) + 1, h),
+                           np.arange(min(z_min) - 1, max(z_max) + 1, h))
+    xx = [xx1, xx2, np.ones((yy2.shape))]
+    yy = [yy1, np.ones((xx2.shape)), yy2]
+    zz = [np.ones((xx1.shape)), zz1, zz2]
+    xlabels = ['X1', 'X1', 'X2']
+    ylabels = ['X2', 'X3', 'X3']
+    dim = [[0, 1], [0, 2], [1, 2]]
+    for i in range(3):
+        plt.subplot(2, 2, i + 1)
+        plt.subplots_adjust(wspace=0.4, hspace=0.4)
+        Z = np.zeros((xx[i].shape[0], xx[i].shape[1]))
+        for j in range(xx[i].shape[0]):
+            for k in range(xx[i].shape[1]):
+                point = np.array([[xx[i][j, k]], [yy[i][j, k]], [zz[i][j, k]]])
+                Z[j, k] = ML_Classifier(point, mu, cov)
+        if i == 0:
+            plt.contourf(xx[i], yy[i], Z, levels=[0.75, 1.25, 1.75, 2.25, 2.75, 3.25], colors=['b', 'w', 'g', 'w', 'r'],
+                         zorder=-1)
+            cbar = plt.colorbar(ticks=np.arange(1, 4))
+            cbar.set_label("class #")
+        elif i == 1:
+            plt.contourf(xx[i], zz[i], Z, levels=[0.75, 1.25, 1.75, 2.25, 2.75, 3.25], colors=['b', 'w', 'g', 'w', 'r'],
+                         zorder=-1)
+            cbar = plt.colorbar(ticks=np.arange(1, 4))
+            cbar.set_label("class #")
+        elif i == 2:
+            plt.contourf(yy[i], zz[i], Z, levels=[0.75, 1.25, 1.75, 2.25, 2.75, 3.25], colors=['b', 'w', 'g', 'w', 'r'],
+                         zorder=-1)
+            cbar = plt.colorbar(ticks=np.arange(1, 4))
+            cbar.set_label("class #")
+
+        # train data
+        plt.scatter(x1[dim[i][0], :], x1[dim[i][1], :], zorder=1, c='b', marker='o', label='Class 1')
+        plt.scatter(x2[dim[i][0], :], x2[dim[i][1], :], zorder=1, c='g', marker='D', label='Class 2')
+        plt.scatter(x3[dim[i][0], :], x3[dim[i][1], :], zorder=1, c='r', marker='^', label='Class 3')
+        # test data
+        plt.scatter(p[0][dim[i][0]], p[0][dim[i][1]], zorder=1, c='black', marker='x', label='Test Data')
+        plt.scatter(p[1][dim[i][0]], p[1][dim[i][1]], zorder=1, c='black', marker='x')
+        plt.scatter(p[2][dim[i][0]], p[2][dim[i][1]], zorder=1, c='black', marker='x')
+        plt.scatter(p[3][dim[i][0]], p[3][dim[i][1]], zorder=1, c='black', marker='x')
+
+        # labels
+        fig.suptitle('ML Decision Boundary', fontsize=18)
+        plt.xlabel(xlabels[i], fontsize=16)
+        plt.ylabel(ylabels[i], fontsize=16)
+        plt.legend(bbox_to_anchor=(-0.20, 1.1), loc='upper left', ncol=1, prop={'size': 8})
+        plt.xticks(np.arange(-10, 10, 2))
+        plt.yticks(np.arange(-10, 10, 2))
+
 
 # ------------------------ Mean And Covariance Methods ------------------------ #
 
@@ -104,41 +229,7 @@ for i in range(len(p)):
 
 # --------------------------- MAP Decision Boundary ----------------------------- #
 
-x_min = [x1[0, :].min(), x2[0, :].min(), x3[0, :].min()]
-x_max = [x1[0, :].max(), x2[0, :].max(), x3[0, :].max()]
-y_min = [x1[1, :].min(), x2[1, :].min(), x3[1, :].min()]
-y_max = [x1[1, :].max(), x2[1, :].max(), x3[1, :].max()]
-
-# draw top view decision boundary at x3 = 1
-xx, yy = np.meshgrid(np.arange(min(x_min) - 1, max(x_max) + 1, 0.2), np.arange(min(y_min) - 1, max(y_max) + 1, 0.2))
-Z = np.zeros((xx.shape[0], xx.shape[1]))
-for i in range(xx.shape[0]):
-    for j in range(xx.shape[1]):
-            point = np.array([[xx[i, j]], [yy[i, j]], [1]])
-            Z[i, j] = MAP_Classifier(point, mu, cov, prior)
-
-fig1 = plt.figure()
-# train data
-plt.scatter(x1[0, :], x1[1, :], zorder=1, c='b', marker='o', label='Class 1')
-plt.scatter(x2[0, :], x2[1, :], zorder=1, c='g', marker='D', label='Class 2')
-plt.scatter(x3[0, :], x3[1, :], zorder=1, c='r', marker='^', label='Class 3')
-# test data
-plt.scatter(p[0][0], p[0][1], zorder=1, c='black', marker='x', label='Test Data')
-plt.scatter(p[1][0], p[1][1], zorder=1, c='black', marker='x')
-plt.scatter(p[2][0], p[2][1], zorder=1, c='black', marker='x')
-plt.scatter(p[3][0], p[3][1], zorder=1, c='black', marker='x')
-
-# decision boundary
-plt.contourf(xx, yy, Z, levels=[0.75,1.25,1.75, 2.25, 2.75, 3.25], colors=['b','w','g','w','r'], zorder=-1)
-fig1.suptitle('MAP Decision Boundary', fontsize=18)
-plt.xlabel('X1', fontsize=16)
-plt.ylabel('X2', fontsize=16)
-plt.xticks(np.arange(min(x_min) - 0.5, max(x_max) + 1, 2))
-plt.yticks(np.arange(min(y_min) - 0.5, max(y_max) + 1, 2))
-plt.legend(bbox_to_anchor=(-0.20, 1.1), loc='upper left', ncol=1)
-
-cbar = plt.colorbar(ticks=np.arange(1, 4))
-cbar.set_label("class #")
+MAP_Plot(x1, x2, x3, p, mu, cov, prior)
 
 # -------------------------- Test ML Classification ---------------------------- #
 
@@ -148,34 +239,6 @@ for i in range(len(p)):
 
 # --------------------------- ML Decision Boundary ----------------------------- #
 
-# draw top view decision boundary at x3 = 1
-Z = np.zeros((xx.shape[0], xx.shape[1]))
-for i in range(xx.shape[0]):
-    for j in range(xx.shape[1]):
-        point = np.array([[xx[i, j]], [yy[i, j]], [1]])
-        Z[i, j] = ML_Classifier(point, mu, cov)
-
-fig2 = plt.figure()
-# train data
-plt.scatter(x1[0, :], x1[1, :], zorder=1, c='b', marker='o', label='Class 1')
-plt.scatter(x2[0, :], x2[1, :], zorder=1, c='g', marker='D', label='Class 2')
-plt.scatter(x3[0, :], x3[1, :], zorder=1, c='r', marker='^', label='Class 3')
-# test data
-plt.scatter(p[0][0], p[0][1], zorder=1, c='black', marker='x', label='Test Data')
-plt.scatter(p[1][0], p[1][1], zorder=1, c='black', marker='x')
-plt.scatter(p[2][0], p[2][1], zorder=1, c='black', marker='x')
-plt.scatter(p[3][0], p[3][1], zorder=1, c='black', marker='x')
-
-# decision boundary
-plt.contourf(xx, yy, Z, levels=[0.75, 1.25, 1.75, 2.25, 2.75, 3.25], colors=['b', 'w', 'g', 'w', 'r'], zorder=-1)
-fig2.suptitle('ML Decision Boundary', fontsize=18)
-plt.xlabel('X1', fontsize=16)
-plt.ylabel('X2', fontsize=16)
-plt.xticks(np.arange(min(x_min) - 0.5, max(x_max) + 1, 2))
-plt.yticks(np.arange(min(y_min) - 0.5, max(y_max) + 1, 2))
-
-cbar = plt.colorbar(ticks=np.arange(1, 4))
-cbar.set_label("Class #")
-plt.legend(bbox_to_anchor=(-0.20, 1.1), loc='upper left', ncol=1)
+ML_Plot(x1, x2, x3, p, mu, cov)
 plt.show()
 
