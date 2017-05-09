@@ -1,10 +1,10 @@
 import numpy as np
 from sklearn import svm
-from sklearn.metrics import accuracy_score
-from sklearn.cross_validation import train_test_split
+from sklearn.naive_bayes import GaussianNB
+import matplotlib.pyplot as plt
 
 
-# load file
+# load files
 def prepare_data(positive_file, negative_file):
     positive_data = np.zeros((1, 50))
     for line in positive_file:
@@ -32,29 +32,91 @@ def prepare_data(positive_file, negative_file):
     return data, labels
 
 
-def train_svm_classifier(classifier, train_data, train_labels, test_data, test_labels):
-    classifier.fit(train_data, train_labels)
+# split the data
+def split_data(data, labels, train_size):
+    if train_size > 5000:
+        train_size = 5000
 
-    train_predictions = classifier.predict(train_data)
-    train_accuracy = accuracy_score(train_labels, train_predictions, normalize=True)
-    train_error = 1 - train_accuracy
+    training_data = np.vstack((data[0:(train_size/2)], data[5000:5000+(train_size / 2)]))
+    training_labels = np.hstack((labels[0:(train_size / 2)], labels[5000:5000+(train_size / 2)]))
 
-    test_predictions = classifier.predict(test_data)
-    test_accuracy = accuracy_score(test_labels, test_predictions, normalize=True)
-    test_error = 1 - test_accuracy
+    testing_data = np.vstack((data[2500:5000], data[7500:10000]))
+    testing_labels = np.hstack((labels[2500:5000], labels[7500:10000]))
 
-    return train_error, test_error
+    return training_data, testing_data, training_labels, testing_labels
+
+
+# train the classifier and calculate train & test errors
+def train_polynomial_svm_classifier(degree, training_data, training_labels, testing_data, testing_labels):
+    clf = svm.SVC(kernel='poly', degree=degree, max_iter=30000, random_state=False, verbose=False)
+    clf.fit(training_data, training_labels)
+
+    training_accuracy = clf.score(training_data, training_labels)
+    training_error = 1 - training_accuracy
+
+    testing_accuracy = clf.score(testing_data, testing_labels)
+    testing_error = 1 - testing_accuracy
+
+    return training_error, testing_error
+
+
+def plot_error(x, train_errors, test_errors, x_label, title):
+    fig = plt.figure()
+    plt.plot(x, train_errors, color="blue", linewidth=2.5, linestyle="-", label="Train Error")
+    plt.plot(x, test_errors, color="Red", linewidth=2.5, linestyle="-", label="Test Error")
+    plt.xlabel(x_label)
+    plt.ylabel("Error")
+    plt.axis([min(x), max(x), 0, 1])
+    plt.title(title)
+    plt.legend(loc='upper left')
+
+
+print("############################## Preparing Data ##############################\n")
 
 positive_labels_file = open('positive.dat', 'r')
 negative_labels_file = open('negative.dat', 'r')
 X, Y = prepare_data(positive_labels_file, negative_labels_file)
 
-# split the data into half
-train_data, test_data, train_labels, test_labels = train_test_split(X, Y, test_size=0.5, random_state=0)
-clf = svm.LinearSVC(random_state=False, verbose=False)
+print("################################# Training #################################")
+print("########################## SVM Polynomial Kernel ###########################\n")
 
-train_error, test_error = train_svm_classifier(clf, train_data[:1000], train_labels[:1000], test_data, test_labels)
+train_error_size = []
+test_error_size = []
 
-print("For 1000 training points: ")
-print("Train Error: %.3f%%" % (train_error * 100))
-print("Test Error: %.3f%%" % (test_error * 100))
+chosen_degree = 2
+
+for i in range(1, 6):
+    num_points = i * 1000
+    train_data, test_data, train_labels, test_labels = split_data(X, Y, num_points)
+    print("############################ %d training points ############################\n" % num_points)
+    j = 0
+    x_range = []
+    train_error_degree = []
+    test_error_degree = []
+    while j <= 15:
+        print('\nPolynomial of Degree = %d:\n' % j)
+        train_error, test_error = train_polynomial_svm_classifier(j, train_data, train_labels, test_data, test_labels)
+        train_error_degree.append(train_error)
+        test_error_degree.append(test_error)
+        x_range.append(j)
+        j += 1
+        print("Train Error: %.3f%%" % (train_error * 100))
+        print("Test Error: %.3f%%" % (test_error * 100))
+
+    plot_error(x_range, train_error_degree, test_error_degree,
+               "Polynomial Degree", str(num_points) + " training points")
+
+    train_error_size.append(train_error_degree[chosen_degree])
+    test_error_size.append(test_error_degree[chosen_degree])
+
+plot_error([1000, 2000, 3000, 4000, 5000], train_error_size,
+           test_error_size, "Train Data Size", "Polynomials of Degree = " + str(chosen_degree))
+
+print("############################ Bayes Classifier #############################\n")
+
+gnb = GaussianNB()
+y_pred = gnb.fit(X, Y).predict(X)
+error = float((Y != y_pred).sum()) / len(Y) * 100
+print("Bayes Error = %.3f%%" % error)
+
+plt.show()
