@@ -60,15 +60,54 @@ def train_polynomial_svm_classifier(degree, training_data, training_labels, test
     return training_error, testing_error
 
 
-def plot_error(x, train_errors, test_errors, x_label, title):
+def train_rbf_svm_classifier(c, gamma, training_data, training_labels, testing_data, testing_labels):
+    clf = svm.SVC(kernel='rbf', C=c,gamma=gamma,  max_iter=30000, random_state=False, verbose=False)
+    clf.fit(training_data, training_labels)
+
+    training_accuracy = clf.score(training_data, training_labels)
+    training_error = 1 - training_accuracy
+
+    testing_accuracy = clf.score(testing_data, testing_labels)
+    testing_error = 1 - testing_accuracy
+
+    return training_error, testing_error
+
+
+def plot_error(x, train_errors, test_errors, x_label, title, legend, colors):
     fig = plt.figure()
-    plt.plot(x, train_errors, color="blue", linewidth=2.5, linestyle="-", label="Train Error")
-    plt.plot(x, test_errors, color="Red", linewidth=2.5, linestyle="-", label="Test Error")
+    fig.canvas.set_window_title(title)
+    j = 0
+    for i in range(len(legend)):
+        training_error = [row[i] for row in train_errors]
+        testing_error = [row[i] for row in test_errors]
+        plt.plot(x, training_error, color=colors[j], linewidth=1.5, linestyle="-", label="Train Error " + legend[i])
+        plt.plot(x, testing_error, color=colors[j+1], linewidth=1.5, linestyle="-", label="Test Error " + legend[i])
+        j += 2
     plt.xlabel(x_label)
     plt.ylabel("Error")
     plt.axis([min(x), max(x), 0, 1])
     plt.title(title)
     plt.legend(loc='upper left')
+
+
+def subplot_error(x, train_errors, test_errors, x_label, title):
+    fig = plt.figure()
+    fig.suptitle(title)
+    fig.canvas.set_window_title(title)
+    ax1 = plt.subplot2grid(shape=(2, 6), loc=(0, 0), colspan=2)
+    ax2 = plt.subplot2grid((2, 6), (0, 2), colspan=2)
+    ax3 = plt.subplot2grid((2, 6), (0, 4), colspan=2)
+    ax4 = plt.subplot2grid((2, 6), (1, 1), colspan=2)
+    ax5 = plt.subplot2grid((2, 6), (1, 3), colspan=2)
+    axes = [ax1, ax2, ax3, ax4, ax5]
+    for i in range(1, 6):
+        axes[i-1].plot(x, train_errors[i-1], color="blue", linewidth=1.5, linestyle="-", label="Train Error")
+        axes[i-1].plot(x, test_errors[i-1], color="Red", linewidth=1.5, linestyle="-", label="Train Error")
+        axes[i-1].axis([min(x), max(x), 0, 1])
+        axes[i-1].set_title(str(i*1000) + " training points")
+        axes[i - 1].set_ylabel("Error")
+        axes[i - 1].set_xlabel(x_label)
+    ax1.legend(loc='upper left')
 
 
 print("############################## Preparing Data ##############################\n")
@@ -80,37 +119,94 @@ X, Y = prepare_data(positive_labels_file, negative_labels_file)
 print("################################# Training #################################")
 print("########################## SVM Polynomial Kernel ###########################\n")
 
-train_error_size = []
-test_error_size = []
-
-chosen_degree = 2
+train_errors_degree = []
+test_errors_degree = []
+x_range = []
+legend = []
 
 for i in range(1, 6):
     num_points = i * 1000
     train_data, test_data, train_labels, test_labels = split_data(X, Y, num_points)
     print("############################ %d training points ############################\n" % num_points)
     j = 0
-    x_range = []
     train_error_degree = []
     test_error_degree = []
-    while j <= 15:
+    while j <= 5:
         print('\nPolynomial of Degree = %d:\n' % j)
         train_error, test_error = train_polynomial_svm_classifier(j, train_data, train_labels, test_data, test_labels)
         train_error_degree.append(train_error)
         test_error_degree.append(test_error)
-        x_range.append(j)
+        if i == 1:
+            x_range.append(j)
+            legend.append("Degree = " + str(j))
         j += 1
         print("Train Error: %.3f%%" % (train_error * 100))
         print("Test Error: %.3f%%" % (test_error * 100))
 
-    plot_error(x_range, train_error_degree, test_error_degree,
-               "Polynomial Degree", str(num_points) + " training points")
+    train_errors_degree.append(train_error_degree)
+    test_errors_degree.append(test_error_degree)
 
-    train_error_size.append(train_error_degree[chosen_degree])
-    test_error_size.append(test_error_degree[chosen_degree])
+subplot_error(x_range, train_errors_degree, test_errors_degree, "Polynomial Degree", "Polynomial SVMs")
 
-plot_error([1000, 2000, 3000, 4000, 5000], train_error_size,
-           test_error_size, "Train Data Size", "Polynomials of Degree = " + str(chosen_degree))
+colors = ['#ff0000', '#990000', '#00ff00', '#009900', '#0000ff', '#000099',
+          '#cc6600', '#ff9933', '#9933ff', '#ff99ff', '#003300', '#336600']
+plot_error([1000, 2000, 3000, 4000, 5000], train_errors_degree,
+           test_errors_degree, "Train Data Size", "Polynomial SVMs", legend, colors)
+
+print("########################## SVM Gaussian Kernel ###########################\n")
+
+train_errors_gamma = []
+test_errors_gamma = []
+train_errors_c = []
+test_errors_c = []
+
+x_range_gamma = []
+x_range_c = []
+
+for i in range(1, 6):
+    num_points = i * 1000
+    train_data, test_data, train_labels, test_labels = split_data(X, Y, num_points)
+    print("############################ %d training points ############################\n" % num_points)
+    j = 10**-6
+    train_error_gamma = []
+    test_error_gamma = []
+    while j <= 0.1:
+        print('\nGamma = %f:\n' % j)
+        train_error, test_error = train_rbf_svm_classifier(1, j, train_data, train_labels, test_data, test_labels)
+        train_error_gamma.append(train_error)
+        test_error_gamma.append(test_error)
+        if i == 1:
+            x_range_gamma.append(np.log(j)/np.log(10))
+        j *= 10
+        print("Train Error: %.3f%%" % (train_error * 100))
+        print("Test Error: %.3f%%" % (test_error * 100))
+
+    train_errors_gamma.append(train_error_gamma)
+    test_errors_gamma.append(test_error_gamma)
+
+    x_range = []
+    train_error_c = []
+    test_error_c = []
+    j = 0.05
+    while j <= 0.3:
+        print('\nC = %.2f:\n' % j)
+        train_error, test_error = train_rbf_svm_classifier(j, 10 ** -4, train_data, train_labels, test_data,
+                                                           test_labels)
+        train_error_c.append(train_error)
+        test_error_c.append(test_error)
+        if i == 1:
+            x_range_c.append(j)
+        j += 0.05
+        print("Train Error: %.3f%%" % (train_error * 100))
+        print("Test Error: %.3f%%" % (test_error * 100))
+
+    train_errors_c.append(train_error_c)
+    test_errors_c.append(test_error_c)
+
+subplot_error(x_range_gamma, train_errors_gamma, test_errors_gamma, "Log(Gamma)", "Gaussian SVMs")
+
+subplot_error(x_range_c, train_errors_c, test_errors_c, "C", "Gaussian SVMs")
+
 
 print("############################ Bayes Classifier #############################\n")
 
